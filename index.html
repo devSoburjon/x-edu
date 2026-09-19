@@ -1,0 +1,3231 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Demo paytida brauzer eski nusxani ko'rsatmasligi uchun -->
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>X-edu — Ta'limning yangi avlodi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Maxfiy sozlamalar. config.example.js dan nusxa oling. Git'ga tushmaydi. -->
+<script src="config.js"></script>
+<!-- Firebase SDK. Yuklanmasa ham ilova ishlaydi — localStorage rejimiga tushadi. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  tailwind.config = {
+    darkMode: ['class', '[data-theme="dark"]'],
+    theme: {
+      extend: {
+        fontFamily: { display: ['Sora','ui-sans-serif','system-ui','sans-serif'], body: ['Inter','ui-sans-serif','system-ui','sans-serif'] },
+        colors: {
+          navy: { DEFAULT:'#0B1030', 50:'#EEF0FA', 100:'#D9DCF3', 600:'#1A2158', 700:'#131A46', 800:'#0F1538', 900:'#0B1030' },
+          indigo2: { DEFAULT:'#4338CA', 50:'#EEEDFC', 100:'#DEDCFA', 500:'#5B4FE0', 600:'#4338CA', 700:'#372DAA' },
+          violet2: { DEFAULT:'#7C3AED', 500:'#8B5CF6', 600:'#7C3AED' },
+        },
+        boxShadow: { soft:'0 1px 2px rgba(11,16,48,.06), 0 8px 24px -8px rgba(11,16,48,.12)' },
+        borderRadius: { xl2:'1.25rem' }
+      }
+    }
+  }
+</script>
+<style>
+  :root{
+    --bg:#F6F7FC; --surface:#FFFFFF; --ink:#10142B; --ink-soft:#565C7E; --line:#E6E8F5; --line-soft:#EEF0FA;
+    --indigo:#4338CA; --violet:#7C3AED; --navy:#0B1030;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --bg:#0B0E22; --surface:#131735; --ink:#F3F4FC; --ink-soft:#A8ADCC; --line:#242A54; --line-soft:#1B2048; }
+  }
+  :root[data-theme="dark"]{ --bg:#0B0E22; --surface:#131735; --ink:#F3F4FC; --ink-soft:#A8ADCC; --line:#242A54; --line-soft:#1B2048; }
+  html,body{ background:var(--bg); color:var(--ink); }
+  body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; }
+  h1,h2,h3,h4,.font-display{ font-family:'Sora',ui-sans-serif,system-ui,sans-serif; }
+  .bg-surface{ background:var(--surface); }
+  .text-ink{ color:var(--ink); }
+  .text-inksoft{ color:var(--ink-soft); }
+  .border-line{ border-color:var(--line); }
+  .bg-linesoft{ background:var(--line-soft); }
+  ::-webkit-scrollbar{ height:8px; width:8px; }
+  ::-webkit-scrollbar-thumb{ background:#C7CBE6; border-radius:8px; }
+  :root[data-theme="dark"] ::-webkit-scrollbar-thumb{ background:#2C3266; }
+  .no-scrollbar::-webkit-scrollbar{ display:none; }
+  .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none; }
+  a,button{ -webkit-tap-highlight-color: transparent; }
+  *:focus-visible{ outline: 2px solid #7C3AED; outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; } }
+
+  .grad-brand{ background: linear-gradient(135deg,#4338CA 0%, #6D3BE0 45%, #7C3AED 100%); }
+  .grad-text{ background: linear-gradient(90deg,#4338CA, #7C3AED); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:1.25rem; }
+  .card-hover{ transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .card-hover:hover{ transform: translateY(-3px); box-shadow: 0 1px 2px rgba(11,16,48,.06), 0 16px 32px -12px rgba(67,56,202,.22); border-color:#C9C4F7; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; font-weight:600; border-radius:.85rem; transition: all .15s ease; white-space:nowrap; }
+  .btn-primary{ background:var(--indigo); color:#fff; }
+  .btn-primary:hover{ background:#372DAA; }
+  .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn-ghost:hover{ background:var(--line-soft); }
+  .btn-violet{ background:var(--violet); color:#fff; }
+  .btn-violet:hover{ background:#6B2FD8; }
+  .chip{ border-radius:999px; border:1px solid var(--line); padding:.4rem .9rem; font-size:.85rem; font-weight:500; transition:.15s; cursor:pointer; }
+  .chip.active{ background:var(--indigo); color:#fff; border-color:var(--indigo); }
+  .skel{ background: linear-gradient(90deg, var(--line-soft) 25%, var(--line) 37%, var(--line-soft) 63%); background-size:400% 100%; animation: skel 1.4s ease infinite; border-radius:.6rem; }
+  @keyframes skel{ 0%{background-position:100% 50%} 100%{background-position:0 50%} }
+  .fade-up{ animation: fadeUp .5s ease both; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+  .spin-wheel{ transition: transform 4.5s cubic-bezier(.15,.85,.25,1); }
+  .flip-card{ perspective:1000px; }
+  .flip-inner{ transition: transform .5s; transform-style:preserve-3d; position:relative; }
+  .flip-card.flipped .flip-inner{ transform: rotateY(180deg); }
+  .flip-face{ backface-visibility:hidden; position:absolute; inset:0; }
+  .flip-back{ transform: rotateY(180deg); }
+  .modal-backdrop{ background: rgba(11,16,48,.55); backdrop-filter: blur(2px); }
+  .toast{ animation: toastIn .25s ease both; }
+  @keyframes toastIn{ from{opacity:0; transform:translateY(8px) translateX(-50%)} to{opacity:1; transform:translateY(0) translateX(-50%)} }
+  .accordion-content{ max-height:0; overflow:hidden; transition: max-height .3s ease; }
+  /* Forma maydonlari — mavzu (light/dark) ranglariga bog'langan.
+     Shusiz brauzer o'zining oq foni va o'chib ketgan placeholderini qo'yadi. */
+  input:not([type=range]):not([type=checkbox]):not([type=radio]),
+  textarea, select{
+    background:var(--surface); color:var(--ink); caret-color:var(--indigo);
+    color-scheme: light dark;
+  }
+  input::placeholder, textarea::placeholder{ color:var(--ink-soft); opacity:.75; }
+  input[readonly], textarea[readonly]{ background:var(--line-soft); color:var(--ink-soft); }
+  /* Chrome avtoto'ldirishi o'zining oq fonini majburlaydi — ichki soya bilan qoplaymiz */
+  input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus{
+    -webkit-text-fill-color: var(--ink);
+    -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+    box-shadow: 0 0 0 1000px var(--surface) inset;
+    transition: background-color 9999s ease-out 0s;
+  }
+  input[type=range]{ accent-color:#4338CA; }
+  .table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  @media print{
+    header, footer, #toasts, .modal-backdrop, .no-print, [data-action="ai-generate"], [data-action="ai-edit"], [data-action="ai-save"], [data-action="ai-print"], [data-action="ai-pdf"]{ display:none !important; }
+    body{ background:#fff !important; }
+    #ai-print-area{ border:none !important; box-shadow:none !important; }
+  }
+</style>
+</head>
+<body class="bg-[var(--bg)] text-ink font-body">
+<div id="toasts" class="fixed bottom-5 left-1/2 z-[200] flex flex-col gap-2 items-center"></div>
+<div id="modal-root"></div>
+<div id="app"></div>
+
+<script>
+/* =========================================================
+   X-edu — demo ta'lim platformasi (single-file)
+   ========================================================= */
+
+/* ---------- MA'LUMOTLAR (DATA) ---------- */
+const SUBJECTS = ["Matematika","Ona tili","Adabiyot","Ingliz tili","Rus tili","Fizika","Kimyo","Biologiya","Tarix","Geografiya","Informatika"];
+const GRADES = [1,2,3,4,5,6,7,8,9,10,11];
+const MATERIAL_TYPES = ["Test","Ish varaqasi","Nazorat ishi","Krossvord","Anagramma","Savol-javob","Bo'sh joyni to'ldirish","Moslashtirish","BSB","ChSB"];
+const LEVELS = ["Oson","O'rta","Qiyin"];
+const QCOUNTS = [5,10,15,20,30];
+
+const TOPICS = {
+  "Matematika": ["Kasrlar","Tenglamalar","Geometrik shakllar","Foizlar","Funksiyalar","Ko'phadlar","Trigonometriya asoslari"],
+  "Ona tili": ["Gap bo'laklari","Otlar va sifatlar","Fe'l zamonlari","Sintaksis","Imlo qoidalari"],
+  "Adabiyot": ["Alisher Navoiy ijodi","Xalq og'zaki ijodi","Zamonaviy o'zbek nasri","She'riy vazn"],
+  "Ingliz tili": ["Present Simple","Past Tenses","Modal verbs","So'z boyligi: Travel","Reading comprehension"],
+  "Rus tili": ["Падежи","Глаголы движения","Части речи"],
+  "Fizika": ["Nyuton qonunlari","Elektr toki","Energiya saqlanishi","Optika asoslari"],
+  "Kimyo": ["Davriy sistema","Kimyoviy bog'lanishlar","Eritmalar","Oksidlanish-qaytarilish"],
+  "Biologiya": ["Hujayra tuzilishi","Fotosintez","Genetika asoslari","Ekosistemalar"],
+  "Tarix": ["Amir Temur davri","Ikkinchi jahon urushi","Mustaqillik tarixi","Qadimgi Sharq"],
+  "Geografiya": ["Iqlim mintaqalari","O'zbekiston tabiiy resurslari","Materiklar","Aholi geografiyasi"],
+  "Informatika": ["Algoritmlar asoslari","Ma'lumotlar bazasi","Python asoslari","Tarmoqlar"]
+};
+
+function seedRand(seed){ let x = Math.sin(seed) * 10000; return x - Math.floor(x); }
+
+/* =========================================================
+   BILIM GRAFI — X-Edu yadrosi
+   Har bir tushuncha o'zidan oldin kelishi shart bo'lgan
+   tushunchalarga bog'langan. Xato sababini topish shu grafga tayanadi.
+   ========================================================= */
+const CONCEPTS = {
+  manfiy:   { nom:"Manfiy sonlar",        oldin:[] },
+  daraja:   { nom:"Daraja va kvadrat",    oldin:['manfiy'] },
+  ildiz:    { nom:"Kvadrat ildiz",        oldin:['daraja'] },
+  qavs:     { nom:"Qavslarni ochish",     oldin:['manfiy'] },
+  chiziqli: { nom:"Chiziqli tenglama",    oldin:['qavs'] },
+  kvadrat:  { nom:"Kvadrat tenglama",     oldin:['ildiz','chiziqli'] }
+};
+
+/* Har bir savol aniq bitta tushunchaga bog'langan —
+   xato tahlili shunisiz umuman ishlamaydi. */
+const QUESTIONS = [
+  { id:'q1', concept:'manfiy', savol:"(−5) + 3 amalning natijasi nimaga teng?",
+    variantlar:["−2","2","−8","8"], javob:"−2",
+    izoh:"Ishoralari har xil sonlarni qo'shganda moduli katta sondan kichigi ayiriladi va katta sonning ishorasi qo'yiladi: 5 − 3 = 2, ishora manfiy → −2." },
+  { id:'q2', concept:'manfiy', savol:"(−4) · (−3) amalning natijasi nimaga teng?",
+    variantlar:["12","−12","−7","7"], javob:"12",
+    izoh:"Ikki manfiy sonning ko'paytmasi musbat bo'ladi: 4 · 3 = 12." },
+
+  { id:'q3', concept:'daraja', savol:"(−3)² nimaga teng?",
+    variantlar:["9","−9","6","−6"], javob:"9",
+    izoh:"Qavs ichidagi manfiy son kvadratga ko'tarilsa natija musbat: (−3)·(−3) = 9. Diqqat: −3² esa −9 bo'ladi." },
+  { id:'q4', concept:'daraja', savol:"2³ · 2² ifodani soddalashtiring.",
+    variantlar:["2⁵","2⁶","4⁵","2¹"], javob:"2⁵",
+    izoh:"Asoslari bir xil darajalar ko'paytirilsa ko'rsatkichlar qo'shiladi: 3 + 2 = 5." },
+
+  { id:'q5', concept:'ildiz', savol:"√49 nimaga teng?",
+    variantlar:["7","9","24,5","2401"], javob:"7",
+    izoh:"Kvadrat ildiz — kvadratga ko'tarishning teskarisi. 7² = 49 bo'lgani uchun √49 = 7." },
+  { id:'q6', concept:'ildiz', savol:"√(16 · 9) nimaga teng?",
+    variantlar:["12","25","7","144"], javob:"12",
+    izoh:"Ko'paytmadan ildiz: √16 · √9 = 4 · 3 = 12." },
+
+  { id:'q7', concept:'qavs', savol:"2(x + 3) ifodani qavssiz yozing.",
+    variantlar:["2x + 6","2x + 3","x + 6","2x + 5"], javob:"2x + 6",
+    izoh:"Qavs oldidagi ko'paytuvchi har bir qo'shiluvchiga ko'paytiriladi: 2·x + 2·3." },
+  { id:'q8', concept:'qavs', savol:"−(x − 5) ifodani qavssiz yozing.",
+    variantlar:["−x + 5","−x − 5","x − 5","x + 5"], javob:"−x + 5",
+    izoh:"Qavs oldida minus turса, ichidagi har bir hadning ishorasi almashadi." },
+
+  { id:'q9', concept:'chiziqli', savol:"3x − 6 = 0 tenglamani yeching.",
+    variantlar:["x = 2","x = −2","x = 6","x = 18"], javob:"x = 2",
+    izoh:"3x = 6 → x = 6 : 3 = 2." },
+  { id:'q10', concept:'chiziqli', savol:"2x + 4 = 10 tenglamani yeching.",
+    variantlar:["x = 3","x = 7","x = 5","x = 6"], javob:"x = 3",
+    izoh:"2x = 10 − 4 = 6 → x = 3." },
+
+  { id:'q11', concept:'kvadrat', savol:"x² − 5x + 6 = 0 tenglamaning ildizlarini toping.",
+    variantlar:["x = 2; x = 3","x = −2; x = −3","x = 1; x = 6","x = 5; x = 6"], javob:"x = 2; x = 3",
+    izoh:"D = 25 − 24 = 1, √D = 1. x = (5 ± 1)/2 → x = 3 va x = 2." },
+  { id:'q12', concept:'kvadrat', savol:"x² + 2x + 5 = 0 tenglama nechta haqiqiy ildizga ega?",
+    variantlar:["Haqiqiy ildiz yo'q","Bitta","Ikkita","Cheksiz ko'p"], javob:"Haqiqiy ildiz yo'q",
+    izoh:"D = 2² − 4·1·5 = 4 − 20 = −16. Diskriminant manfiy bo'lgani uchun haqiqiy ildiz yo'q. Bu yerda manfiy sonlar bilan amal qilish muhim." }
+];
+
+/* ---------- TESTLAR (mock ma'lumot) ---------- */
+const TESTS = [
+  { id:'t1', nom:"Sonlar va amallar", tavsif:"Manfiy sonlar, daraja va kvadrat ildiz bo'yicha asosiy bilimlar.",
+    concepts:['manfiy','daraja','ildiz'], daraja:"Oson", vaqt:"~5 daqiqa" },
+  { id:'t2', nom:"Tenglamalar", tavsif:"Qavslarni ochish, chiziqli va kvadrat tenglamalar.",
+    concepts:['qavs','chiziqli','kvadrat'], daraja:"O'rta", vaqt:"~5 daqiqa" },
+  { id:'t3', nom:"Chorak nazorati", tavsif:"Barcha mavzular bo'yicha nazorat ishi. Bog'liqlik tahlili shu testda eng aniq ishlaydi.",
+    concepts:['manfiy','daraja','ildiz','qavs','chiziqli','kvadrat'], daraja:"Qiyin", vaqt:"~6 daqiqa",
+    savollar:['q1','q2','q3','q5','q7','q9','q11','q12'] }
+];
+function testSavollari(t){
+  return t.savollar
+    ? t.savollar.map(id => QUESTIONS.find(q=>q.id===id)).filter(Boolean)
+    : QUESTIONS.filter(q => t.concepts.includes(q.concept));
+}
+
+/* ---------- XATO TAHLILI ----------
+   Faqat "xato" demaydi — sababini va ildizini topadi. */
+function tahlilQil(javoblar){
+  const perConcept = {};
+  javoblar.forEach(a=>{
+    const c = a.concept;
+    if (!perConcept[c]) perConcept[c] = { jami:0, xato:0, tezXato:0 };
+    perConcept[c].jami++;
+    if (!a.togri){ perConcept[c].xato++; if (a.vaqt < 4000) perConcept[c].tezXato++; }
+  });
+
+  // Zanjirdagi chuqurlik: teng xato ulushida yuzaki (keyingi) mavzu asosiy deb olinadi,
+  // keyin ildizga qarab orqaga yuriladi.
+  const chuqurlik = (c, korilgan=new Set()) => {
+    if (korilgan.has(c) || !CONCEPTS[c]) return 0;
+    korilgan.add(c);
+    const oldin = CONCEPTS[c].oldin || [];
+    return oldin.length ? 1 + Math.max(...oldin.map(p=>chuqurlik(p, korilgan))) : 0;
+  };
+
+  const muammoli = Object.keys(perConcept)
+    .filter(c => perConcept[c].xato > 0)
+    .sort((a,b) => {
+      const ra = perConcept[a].xato/perConcept[a].jami;
+      const rb = perConcept[b].xato/perConcept[b].jami;
+      if (rb !== ra) return rb - ra;
+      return chuqurlik(b) - chuqurlik(a);
+    });
+
+  if (!muammoli.length) return { toliq:true, perConcept };
+
+  const asosiy = muammoli[0];
+
+  // Ildizni qidiramiz: butun zanjir bo'ylab orqaga yurib, xato bo'lgan
+  // eng erta (eng sayoz) mavzuni topamiz — muammo aslida o'sha yerdan boshlangan.
+  const ajdodlar = (c, acc=new Set()) => {
+    (CONCEPTS[c] && CONCEPTS[c].oldin || []).forEach(p=>{
+      if (!acc.has(p)){ acc.add(p); ajdodlar(p, acc); }
+    });
+    return acc;
+  };
+  const xatoAjdodlar = [...ajdodlar(asosiy)].filter(p => perConcept[p] && perConcept[p].xato > 0);
+  const ildiz = xatoAjdodlar.length
+    ? xatoAjdodlar.sort((a,b)=>chuqurlik(a)-chuqurlik(b))[0]
+    : asosiy;
+
+  const st = perConcept[asosiy];
+  let sabab, sababIzoh;
+  if (ildiz !== asosiy){
+    sabab = "Oldingi mavzu o'zlashtirilmagan";
+    sababIzoh = `"${CONCEPTS[asosiy].nom}" ni yechish uchun avval "${CONCEPTS[ildiz].nom}" kerak. Xato aslida o'sha yerdan boshlangan.`;
+  } else if (st.xato === st.jami){
+    sabab = "Mavzu tushunilmagan";
+    sababIzoh = `"${CONCEPTS[asosiy].nom}" bo'yicha barcha savollarda xato qildingiz — mavzuni boshidan ko'rib chiqish kerak.`;
+  } else if (st.tezXato > 0){
+    sabab = "Shoshilinch javob";
+    sababIzoh = `Javoblaringiz juda tez berilgan. Bilim bor, lekin savol oxirigacha o'qilmayapti.`;
+  } else {
+    sabab = "Qisman o'zlashtirilgan";
+    sababIzoh = `"${CONCEPTS[asosiy].nom}" qisman tushunilgan — mashq qilish yetarli.`;
+  }
+
+  return { toliq:false, perConcept, asosiy, ildiz, sabab, sababIzoh,
+           tavsiya: CONCEPTS[ildiz].nom, tavsiyaKey: ildiz };
+}
+
+/* ---------- AI USTOZ ---------- */
+/* Kalit config.js dan olinadi — u git'ga tushmaydi (.gitignore).
+   Kalit bo'lmasa ilova ishlashda davom etadi, faqat FALLBACK matnlariga o'tadi.
+   Ishlab chiqarishda kalit umuman brauzerga chiqmaydi: so'rov proxy backend orqali yuboriladi. */
+const CFG = (typeof window !== 'undefined' && window.XEDU_CONFIG) || {};
+const AI_KEY = CFG.geminiKey || '';
+const AI_MODEL = CFG.geminiModel || 'gemini-flash-lite-latest';
+const AI_TIMEOUT = CFG.aiTimeout || 12000;   // shundan uzoq kutmaymiz — zaxira matnga o'tamiz
+if (!AI_KEY) console.info('X-Edu: AI kaliti topilmadi — zaxira tushuntirishlar rejimida ishlayapti.');
+
+/* Internet/API ishlamay qolsa demo to'xtamasligi uchun zaxira matnlar */
+const FALLBACK = {
+  manfiy: "Manfiy sonlarni sonlar o'qi orqali tasavvur qiling: noldan chapda turgan sonlar manfiy. Qo'shishda ishoralar bir xil bo'lsa modullar qo'shiladi, har xil bo'lsa kattasidan kichigi ayiriladi va katta sonning ishorasi qo'yiladi. Masalan (−5) + 3 da 5 − 3 = 2, ishora manfiy, javob −2. Ko'paytirishda qoida oddiy: bir xil ishoralar musbat, har xil ishoralar manfiy beradi. Shuning uchun (−4)·(−3) = 12.",
+  daraja: "Daraja — bir xil ko'paytuvchini necha marta ko'paytirishni qisqa yozish usuli: 2³ = 2·2·2 = 8. Asoslari bir xil darajalar ko'paytirilsa ko'rsatkichlar qo'shiladi: 2³·2² = 2⁵. Manfiy sonni kvadratga ko'tarsak natija musbat bo'ladi, chunki ikki manfiy son ko'paytiriladi: (−3)² = 9. Lekin diqqat — qavssiz yozilgan −3² boshqa narsa, u −9 ga teng.",
+  ildiz: "Kvadrat ildiz — kvadratga ko'tarishning teskari amali. √49 = 7, chunki 7² = 49. Ko'paytmadan ildiz chiqarish oson: √(16·9) = √16 · √9 = 4·3 = 12. Manfiy sondan kvadrat ildiz chiqarib bo'lmaydi, chunki hech qanday sonning kvadrati manfiy bo'lmaydi — bu qoida kvadrat tenglamalarda juda muhim bo'ladi.",
+  qavs: "Qavsni ochish — qavs oldidagi ko'paytuvchini ichidagi har bir hadga ko'paytirish. Masalan 2(x + 3) = 2·x + 2·3 = 2x + 6. Agar qavs oldida minus tursa, ichidagi har bir hadning ishorasi almashadi: −(x − 5) = −x + 5. Aynan shu yerda ko'p xato qilinadi — minusni faqat birinchi hadga qo'yib, qolganini unutib qo'yish keng tarqalgan xato.",
+  chiziqli: "Chiziqli tenglamani yechish — noma'lumni bir tomonga, sonlarni ikkinchi tomonga yig'ish. Masalan 2x + 4 = 10 da avval 4 ni o'ng tomonga o'tkazamiz: 2x = 6, keyin ikkala tomonni 2 ga bo'lamiz: x = 3. Hadni tenglamaning boshqa tomoniga o'tkazganda ishorasi almashishini unutmang. Javobni har doim tenglamaga qo'yib tekshirish mumkin.",
+  kvadrat: "Kvadrat tenglama ax² + bx + c = 0 ko'rinishida bo'ladi va diskriminant orqali yechiladi: D = b² − 4ac. Agar D > 0 bo'lsa ikkita ildiz bor, D = 0 bo'lsa bitta, D < 0 bo'lsa haqiqiy ildiz yo'q. Masalan x² − 5x + 6 = 0 da D = 25 − 24 = 1, x = (5 ± 1)/2, ya'ni x = 3 va x = 2. Diskriminantni hisoblashda manfiy sonlar bilan amal qilish kerak — shuning uchun manfiy sonlarni bilmasdan bu mavzuni o'zlashtirib bo'lmaydi."
+};
+
+/* Model ba'zan markdown/LaTeX qaytaradi — chat oynasi oddiy matn ko'rsatgani uchun tozalaymiz */
+function tozala(s){
+  return String(s)
+    .replace(/\$\$?([^$]+)\$\$?/g, '$1')   // $formula$
+    .replace(/\*\*([^*]+)\*\*/g, '$1')     // **qalin**
+    .replace(/^#{1,6}\s*/gm, '')           // ## sarlavha
+    .replace(/^\s*[\*\-]\s+/gm, '• ')      // ro'yxat
+    .replace(/`([^`]+)`/g, '$1')
+    .trim();
+}
+
+/* AI Ustoz o'quvchining joriy holatini biladi — bilim xaritasi, zaif mavzular,
+   oxirgi test natijasi va xato tahlili promptga qo'shiladi. */
+function oquvchiKonteksti(){
+  const lvl = levelOf(STATE.xp);
+  const xarita = Object.keys(CONCEPTS).map(c=>{
+    const i = masteryInfo(c);
+    return `- ${CONCEPTS[c].nom}: ${i.jami ? `${i.togri}/${i.jami} to'g'ri (${i.yorliq})` : "hali ishlanmagan"}`;
+  }).join('\n');
+
+  const zaif = Object.keys(CONCEPTS)
+    .filter(c=>{ const i=masteryInfo(c); return i.jami>0 && i.aniqlik<60; })
+    .map(c=>CONCEPTS[c].nom);
+
+  const oxirgi = STATE.results[0];
+  let tahlilQatori = '';
+  if (sonngiTahlil && !sonngiTahlil.toliq){
+    tahlilQatori = `\nOxirgi tahlil: "${CONCEPTS[sonngiTahlil.asosiy].nom}" mavzusida xato qilgan. Sabab: ${sonngiTahlil.sabab}. Muammoning ildizi: "${CONCEPTS[sonngiTahlil.ildiz].nom}".`;
+  }
+
+  return `O'QUVCHI HAQIDA MA'LUMOT (faqat sen uchun, javobingni shunga moslashtir):
+Ismi: ${STATE.user ? STATE.user.ism : "O'quvchi"} | Level ${lvl} | ${STATE.xp} XP | ${STATE.results.length} ta test ishlagan
+Bilim xaritasi:
+${xarita}${zaif.length ? `\nZaif mavzular: ${zaif.join(', ')}` : ''}${oxirgi ? `\nOxirgi natija: ${oxirgi.mavzu} — ${oxirgi.foiz}%` : ''}${tahlilQatori}`;
+}
+
+async function aiUstoz(conceptKey, savol, tarix){
+  const nom = CONCEPTS[conceptKey] ? CONCEPTS[conceptKey].nom : conceptKey;
+
+  /* Foydalanuvchi o'zi savol yozdimi, yoki shunchaki "Tushuntir" tugmasini bosdimi?
+     Birinchi holatda javob AYNAN savolga beriladi — mavzuga majburan bog'lanmaydi. */
+  const erkinSavol = !!(savol && savol.trim() && !/^\s*(tushuntir|tushuntiring|tushuntirib bering)\s*[.!?]*\s*$/i.test(savol));
+
+  const zaxira = erkinSavol
+    ? "Hozir javob bera olmadim — internet aloqasi uzilgan ko’rinadi. Savolingizni qaytadan yuboring."
+    : (FALLBACK[conceptKey] || "Bu mavzu bo’yicha tushuntirish tayyorlanmoqda.");
+  if (!AI_KEY) return zaxira;
+
+  const yoriqnoma = erkinSavol
+    ? `Sen X-Edu platformasining AI Ustozisan — o’zbek tilida tushuntiruvchi universal o’qituvchi.
+Foydalanuvchi ISTALGAN mavzuda savol berishi mumkin: matematika, fizika, dasturlash (HTML, CSS, JavaScript, Python), tillar, tarix va boshqalar.
+
+ENG MUHIM QOIDA: foydalanuvchi nima so’rasa, AYNAN shu haqida javob ber.
+Savolni matematikaga yoki platformadagi biror mavzuga burib yuborma.
+Agar u "HTML ni o’rgat" desa — HTML haqida gapir, matematika haqida emas.
+
+${oquvchiKonteksti()}
+
+Yuqoridagi ma’lumot faqat foydalanuvchini tanishing uchun. Savol o’sha mavzularga
+tegishli bo’lmasa — uni butunlay e’tiborsiz qoldir va statistika haqida umuman gapirma.
+
+QOIDALAR:
+- Faqat o’zbek tilida yoz.
+- 4-7 ta gap, sodda til, bitta aniq misol bilan.
+- Dasturlash haqida so’ralsa HAQIQIY kod yoz va teglarni to’liq ko’rsat.
+  Masalan HTML uchun: <h1>Salom Dunyo</h1> — burchakli qavslarni tushirib qoldirma.
+  Kodni alohida qatorga yoz, tushuntirishdan ajratib.
+- Bilmaydigan narsangni o’ylab topma.
+- Oddiy matn yoz: LaTeX ($ belgisi) va markdown (**, ##) ISHLATMA.
+- Formulalarni oddiy yoz: x^2, D = b^2 - 4ac kabi.`
+    : `Sen X-Edu platformasining AI Ustozisan — o’zbek tilida tushuntiruvchi maktab matematika o’qituvchisi (7-9-sinflar).
+Foydalanuvchi "${nom}" mavzusini tanladi va tushuntirish so’radi.
+
+${oquvchiKonteksti()}
+
+QOIDALAR:
+- Faqat o’zbek tilida yoz.
+- 4-6 ta gap, sodda til, bitta aniq misol bilan.
+- Yuqoridagi ma’lumotdan foydalanib javobni shu o’quvchiga moslashtir: zaif mavzusi bo’lsa tushuntirishni asosdan boshla.
+- Ma’lumotni ro’yxat qilib takrorlama va "sizning statistikangizda" deb quruq gapirma — tabiiy gapir.
+- Oddiy matn yoz: LaTeX ($ belgisi) va markdown (**, ##) ISHLATMA.
+- Formulalarni oddiy yoz: x^2, D = b^2 - 4ac, (-3)^2 = 9 kabi.`;
+
+  const tasdiq = erkinSavol
+    ? "Tushunarli. Foydalanuvchi nima so’rasa, aynan o’sha mavzuda o’zbek tilida javob beraman."
+    : `Tushunarli. ${nom} mavzusi bo’yicha o’zbek tilida tushuntiraman.`;
+
+  // Oxirgi 6 ta xabarni kontekst sifatida uzatamiz — davomli savollar uchun
+  const contents = [
+    { role:'user',  parts:[{ text: yoriqnoma }] },
+    { role:'model', parts:[{ text: tasdiq }] },
+    ...(tarix||[]).slice(-6).map(m=>({ role: m.rol==='user'?'user':'model', parts:[{ text:m.matn }] })),
+    { role:'user',  parts:[{ text: savol || "Bu mavzuni tushuntirib bering" }] }
+  ];
+
+  const ctrl = new AbortController();
+  const vaqt = setTimeout(()=>ctrl.abort(), AI_TIMEOUT);
+  try{
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent?key=${AI_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, signal: ctrl.signal,
+      body: JSON.stringify({ contents, generationConfig:{ temperature:0.7, maxOutputTokens:500 } })
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const text = (await r.json()).candidates?.[0]?.content?.parts?.[0]?.text;
+    if(!text) throw new Error('bosh javob');
+    return tozala(text);
+  }catch(e){
+    console.warn('AI Ustoz zaxiraga o\'tdi:', e.message);
+    return zaxira;
+  }finally{
+    clearTimeout(vaqt);
+  }
+}
+
+function buildLessons(){
+  const arr = []; let id = 1;
+  SUBJECTS.forEach((subj, si) => {
+    const topics = TOPICS[subj];
+    GRADES.forEach((g) => {
+      if (seedRand(si*97+g) > 0.55) return;
+      const topic = topics[(si+g) % topics.length];
+      const dur = 20 + (Math.floor(seedRand(id*3)*6)*5);
+      const tasks = 5 + Math.floor(seedRand(id*7)*11);
+      arr.push({ id: 'ls'+id, fan: subj, sinf: g, mavzu: topic, davomiylik: dur, topshiriqlar: tasks,
+        views: 200 + Math.floor(seedRand(id*11)*4000) });
+      id++;
+    });
+  });
+  return arr;
+}
+const LESSONS = buildLessons();
+
+const BOOKS = [
+  {id:'b1', nomi:"Matematika — 7-sinf darsligi", muallif:"SH. Alixonov", sinf:7, fan:"Matematika", til:"O'zbek", yil:2023, turi:"Darsliklar"},
+  {id:'b2', nomi:"Ingliz tili amaliy grammatikasi", muallif:"M. Karimova", sinf:9, fan:"Ingliz tili", til:"Ingliz", yil:2022, turi:"Qo'shimcha materiallar"},
+  {id:'b3', nomi:"Fizika masalalar to'plami", muallif:"D. Nazarov", sinf:8, fan:"Fizika", til:"O'zbek", yil:2021, turi:"Ish daftarlari"},
+  {id:'b4', nomi:"O'zbek adabiyoti antologiyasi", muallif:"Tuzuvchilar guruhi", sinf:10, fan:"Adabiyot", til:"O'zbek", yil:2020, turi:"Badiiy adabiyot"},
+  {id:'b5', nomi:"Kimyodan metodik qo'llanma", muallif:"N. Yusupova", sinf:9, fan:"Kimyo", til:"O'zbek", yil:2023, turi:"Metodik qo'llanmalar"},
+  {id:'b6', nomi:"Tarix — 11-sinf darsligi", muallif:"B. Ergashev", sinf:11, fan:"Tarix", til:"O'zbek", yil:2022, turi:"Darsliklar"},
+  {id:'b7', nomi:"Informatika: Python bilan boshlash", muallif:"J. Tosheva", sinf:8, fan:"Informatika", til:"O'zbek", yil:2024, turi:"Qo'shimcha materiallar"},
+  {id:'b8', nomi:"Rus tili mashqlar daftari", muallif:"Е. Волкова", sinf:6, fan:"Rus tili", til:"Rus", yil:2021, turi:"Ish daftarlari"},
+  {id:'b9', nomi:"Biologiya — 10-sinf darsligi", muallif:"R. Qodirova", sinf:10, fan:"Biologiya", til:"O'zbek", yil:2023, turi:"Darsliklar"},
+  {id:'b10', nomi:"Geografiya metodik ko'rsatma", muallif:"A. Sattorov", sinf:7, fan:"Geografiya", til:"O'zbek", yil:2022, turi:"Metodik qo'llanmalar"},
+  {id:'b11', nomi:"Ona tili imlo lug'ati", muallif:"F. Rahimova", sinf:5, fan:"Ona tili", til:"O'zbek", yil:2020, turi:"Qo'shimcha materiallar"},
+  {id:'b12', nomi:"\"Yulduzlar yo'li\" hikoyalar to'plami", muallif:"O. Yoqubov", sinf:6, fan:"Adabiyot", til:"O'zbek", yil:2019, turi:"Badiiy adabiyot"}
+];
+
+const GAMES = [
+  {id:'g1', nomi:"Omad charxi", tavsif:"G'ildirakni aylantirib savolga javob bering va ball to'plang.", icon:'wheel'},
+  {id:'g2', nomi:"Sirli quti", tavsif:"Qutilardan birini tanlang va yashirin savolni oching.", icon:'box'},
+  {id:'g3', nomi:"So'z topish", tavsif:"Ta'rifga qarab yashiringan atamani toping.", icon:'search'},
+  {id:'g4', nomi:"Tezkor savol", tavsif:"10 soniya ichida to'g'ri javobni belgilang.", icon:'bolt'},
+  {id:'g5', nomi:"Moslashtirish", tavsif:"Atama va ta'rifni bir-biriga moslang.", icon:'link'},
+  {id:'g6', nomi:"Anagramma", tavsif:"Aralashtirilgan harflardan so'zni tiklang.", icon:'shuffle'},
+  {id:'g7', nomi:"Poyga", tavsif:"To'g'ri javoblar bilan raqibingizdan o'zib keting.", icon:'flag'},
+  {id:'g8', nomi:"Xotira o'yini", tavsif:"Juft kartalarni his qilib toping.", icon:'grid'}
+];
+
+const TESTIMONIALS = [
+  {ism:"Madina Tursunova", rol:"Matematika o'qituvchisi, Toshkent", fikr:"AI Generator yordamida bir soatlik ish endi besh daqiqaga tushdi. Sinfim uchun har hafta yangi testlar tayyorlayman."},
+  {ism:"Sardor Aliyev", rol:"Fizika o'qituvchisi, Samarqand", fikr:"O'quvchilarim o'yinlar orqali mavzuni ancha tez o'zlashtirmoqda. Xotira o'yini ayniqsa yoqadi."},
+  {ism:"Nilufar Rashidova", rol:"Boshlang'ich sinf o'qituvchisi, Farg'ona", fikr:"Kutubxonadagi materiallar juda tartibli joylashgan, kerakli kitobni tez topaman."},
+  {ism:"Jasur Normatov", rol:"Maktab direktori, Buxoro", fikr:"Maktab kabineti orqali barcha o'qituvchilar faoliyatini bir joydan kuzataman."}
+];
+
+const FAQS = [
+  {savol:"X-Edu qanday ishlaydi?", javob:"To'rt qadam: AI Ustoz mavzuni tushuntiradi, test bilimni tekshiradi, tizim xatoning sababini aniqlaydi va keyingi o'rganish uchun aniq mavzu tavsiya qiladi. Rivojingiz XP, level va bilim xaritasi orqali kuzatiladi."},
+  {savol:"Xatoning sababi qanday aniqlanadi?", javob:"Har bir savol aniq mavzuga bog'langan, mavzular esa o'zaro bog'liqlik grafiga joylashtirilgan. Agar siz \"Kvadrat tenglama\" da xato qilsangiz va ayni paytda \"Manfiy sonlar\" da ham xato bo'lsa, tizim muammoning ildizi ikkinchisida ekanini aniqlaydi — diskriminantni hisoblash manfiy sonlarsiz mumkin emas."},
+  {savol:"Nega oddiy AI chatdan foydalanmaslik kerak?", javob:"Umumiy AI chat sizning fan dasturingizni bilmaydi va kecha nimada xato qilganingizni eslamaydi. X-Edu esa javoblarni fan dasturiga bog'laydi va har bir xatoni bilim xaritangizga yozib boradi."},
+  {savol:"Qaysi tilda ishlaydi?", javob:"Barcha tushuntirishlar va savollar o'zbek tilida. Bu platformaning asosiy ustunliklaridan biri."},
+  {savol:"O'qituvchi uchun foydasi bormi?", javob:"Ha. O'quvchilarning tahlil natijalari sinf kesimida jamlanadi — qaysi mavzu o'zlashtirilmaganini bir ekranda ko'rish mumkin."},
+  {savol:"Ma'lumotlarim qayerda saqlanadi?", javob:"Ro'yxatdan o'tgan bo'lsangiz bilim xaritangiz Firebase bulutida, sizning hisobingizga bog'langan holda saqlanadi — istalgan qurilmadan kirib davom etishingiz mumkin. Internet yo'q bo'lsa ma'lumot brauzerda saqlanadi va aloqa tiklanganda sinxronlanadi."}
+];
+
+const PLANS = [
+  {id:'free', nomi:"Bepul", oylik:0, yillik:0, xususiyat:["Asosiy darslar","5 ta material","Asosiy testlar","Kutubxonaning bir qismi"]},
+  {id:'ustoz', nomi:"Ustoz", oylik:49000, yillik:490000, xususiyat:["50 ta material","AI Generator","PDF yuklab olish","Barcha darslar","Kengaytirilgan kutubxona"], tavsiya:true},
+  {id:'pro', nomi:"Pro Ustoz", oylik:69000, yillik:690000, xususiyat:["Cheksiz materiallar","AI Generator","Barcha darslar","Barcha o'yinlar","Statistika","PDF","Kengaytirilgan imkoniyatlar"]}
+];
+
+/* ---------- HOLAT (STATE) / localStorage ---------- */
+const DB = {
+  get(key, def){ try{ const v = localStorage.getItem('eduai_'+key); return v ? JSON.parse(v) : def; }catch(e){ return def; } },
+  set(key, val){ try{ localStorage.setItem('eduai_'+key, JSON.stringify(val)); }catch(e){} }
+};
+let STATE = {
+  user: DB.get('user', null),
+  saved: DB.get('saved', []),
+  generated: DB.get('generated', []),
+  results: DB.get('results', []),
+  xp: DB.get('xp', 0),
+  mastery: DB.get('mastery', {}),   // tushuncha => {jami, togri}
+  chats: DB.get('chats', []),       // AI Ustoz suhbatlari
+  activeChat: DB.get('activeChat', null),
+  kunlik: DB.get('kunlik', null),   // {sana, hisob:{}, olingan:{}}
+  billing: 'oylik',
+  route: location.hash || '#/',
+  menuOpen: false,
+  searchQuery: ''
+};
+function persistLocal(){ DB.set('user', STATE.user); DB.set('saved', STATE.saved); DB.set('generated', STATE.generated); DB.set('results', STATE.results); DB.set('xp', STATE.xp); DB.set('mastery', STATE.mastery); DB.set('chats', STATE.chats); DB.set('activeChat', STATE.activeChat); DB.set('kunlik', STATE.kunlik); }
+function persist(){ persistLocal(); bulutgaSaqla(); }
+
+/* =========================================================
+   BULUT QATLAMI — Firebase Auth + Firestore
+   Firebase sozlanmagan yoki oflayn bo'lsa ilova avvalgidek
+   localStorage bilan to'liq ishlaydi. Demo hech qachon to'xtamaydi.
+   ========================================================= */
+const FB = (function(){
+  const cfg = CFG.firebase;
+  if (!cfg || !cfg.apiKey || typeof firebase === 'undefined'){
+    console.info("X-Edu: Firebase sozlanmagan — lokal rejimda ishlayapti.");
+    return { ready:false };
+  }
+  try{
+    firebase.initializeApp(cfg);
+    const auth = firebase.auth();
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
+    return { ready:true, auth, db: firebase.firestore() };
+  }catch(e){
+    console.warn('X-Edu: Firebase ishga tushmadi —', e.message);
+    return { ready:false };
+  }
+})();
+
+const BULUT_MAYDONLAR = ['saved','generated','results','chats','xp','mastery','activeChat','kunlik'];
+
+function hujjat(uid){ return FB.db.collection('oquvchilar').doc(uid); }
+
+/* Sahifa ochilishida auth tokeni hali tarqalmagan bo'lishi yoki tarmoq uzilishi mumkin —
+   shuning uchun uch marta, ortib boruvchi kechikish bilan urinamiz. */
+async function bulutdanYukla(uid, urinish){
+  urinish = urinish || 1;
+  try{
+    const snap = await hujjat(uid).get();
+    if (!snap.exists) return false;
+    const d = snap.data() || {};
+    BULUT_MAYDONLAR.forEach(k=>{ if (d[k] !== undefined) STATE[k] = d[k]; });
+    if (d.user) STATE.user = Object.assign({}, STATE.user, d.user);
+    persistLocal();
+    return true;
+  }catch(e){
+    if (urinish < 3){
+      await new Promise(r=>setTimeout(r, urinish * 900));
+      return bulutdanYukla(uid, urinish + 1);
+    }
+    console.warn("Bulutdan yuklash xatosi:", e.message, "— lokal ma'lumot bilan davom etamiz");
+    return false;
+  }
+}
+
+/* Yozishlar guruhlanadi: har bir javobdan keyin emas, 1,2 soniyalik tinchlikdan keyin */
+let saqlashTaymeri = null;
+function bulutgaSaqla(){
+  if (!FB.ready || !FB.auth.currentUser) return;
+  clearTimeout(saqlashTaymeri);
+  saqlashTaymeri = setTimeout(async ()=>{
+    const uid = FB.auth.currentUser && FB.auth.currentUser.uid;
+    if (!uid) return;
+    if (!STATE.user || STATE.user.uid !== uid) return;   // begona hujjatga yozmaymiz
+    const yuk = { user: STATE.user, yangilandi: new Date().toISOString() };
+    BULUT_MAYDONLAR.forEach(k=>{ yuk[k] = STATE[k]; });
+    try{ await hujjat(uid).set(yuk, { merge:true }); reytinggaYoz(); }
+    catch(e){ console.warn('Bulutga saqlash xatosi:', e.message); }
+  }, 1200);
+}
+
+/* =========================================================
+   REYTING
+   Ommaviy profil alohida kolleksiyada: reyting/{uid}.
+   Faqat ko'rsatish uchun kerak bo'lgan maydonlar yoziladi —
+   test javoblari va AI suhbatlari bu yerga CHIQMAYDI.
+   ========================================================= */
+function reytingHujjati(uid){ return FB.db.collection('reyting').doc(uid); }
+
+function reytinggaYoz(){
+  if (!FB.ready || !FB.auth.currentUser || !STATE.user) return;
+  const uid = FB.auth.currentUser.uid;
+  /* STATE hali boshqa foydalanuvchiniki bo'lishi mumkin — o'zgalar profilini
+     ustidan yozib yubormaslik uchun uid mosligini talab qilamiz */
+  if (STATE.user.uid !== uid) return;
+  reytingHujjati(uid).set({
+    ism: STATE.user.ism || "O'quvchi",
+    sinf: STATE.user.sinf || null,
+    xp: STATE.xp || 0,
+    level: levelOf(STATE.xp || 0),
+    badge: olinganBadge(),
+    testlar: (STATE.results || []).length,
+    yangilandi: new Date().toISOString()
+  }, { merge:true }).catch(e=>console.warn('Reytingga yozish xatosi:', e.message));
+}
+
+let reytingKesh = null, reytingVaqti = 0;
+async function reytingOl(majburiy){
+  if (!FB.ready) return { xato:'sozlanmagan' };
+  if (!majburiy && reytingKesh && Date.now() - reytingVaqti < 60000) return { royxat: reytingKesh };
+
+  /* Auth tugamagan bo'lsa so'rov navbatda osilib qoladi — avval sessiyani kutamiz */
+  if (!FB.auth.currentUser){
+    const kutildi = await new Promise(res=>{
+      let off = null, tugadi = false;
+      const yakun = (natija)=>{ if (tugadi) return; tugadi = true; clearTimeout(t); if (off) off(); res(natija); };
+      const t = setTimeout(()=>yakun(false), 6000);
+      /* onAuthStateChanged darhol (sinxron) chaqirilishi mumkin — shuning uchun
+         off hali tayinlanmagan bo'lishi hisobga olingan */
+      off = FB.auth.onAuthStateChanged(u=>{ if (u) yakun(true); });
+      if (tugadi && off) off();
+    });
+    if (!kutildi) return { xato:'kirilmagan' };
+  }
+
+  try{
+    /* Firestore ruxsat xatosida ba'zan qayta urinib osilib qoladi — 10 soniyada uzamiz */
+    const snap = await Promise.race([
+      FB.db.collection('reyting').orderBy('xp','desc').limit(50).get(),
+      new Promise((_,rej)=>setTimeout(()=>rej(Object.assign(new Error('Reyting so\'rovi 10 soniyada javob bermadi'),{code:'timeout'})), 10000))
+    ]);
+    reytingKesh = snap.docs.map(d=>Object.assign({uid:d.id}, d.data()));
+    reytingVaqti = Date.now();
+    return { royxat: reytingKesh };
+  }catch(e){
+    console.warn('Reytingni olish xatosi:', e.code, e.message);
+    return { xato: (e.code === 'permission-denied' || e.code === 'timeout') ? 'ruxsat' : 'tarmoq', xabar: e.message };
+  }
+}
+
+function bulutXatosi(kod){
+  const xaritа = {
+    'auth/email-already-in-use': "Bu email allaqachon ro'yxatdan o'tgan — \"Kiring\" tugmasidan foydalaning.",
+    'auth/invalid-email': "Email manzili noto'g'ri yozilgan.",
+    'auth/weak-password': "Parol juda sodda — kamida 6 ta belgi kerak.",
+    'auth/user-not-found': "Bunday foydalanuvchi topilmadi.",
+    'auth/wrong-password': "Parol noto'g'ri.",
+    'auth/invalid-credential': "Email yoki parol noto'g'ri.",
+    'auth/network-request-failed': "Internet bilan aloqa yo'q."
+  };
+  return xaritа[kod] || "Kirishda xatolik yuz berdi. Qayta urinib ko'ring.";
+}
+
+const LEVELS_XP = 100;
+function levelOf(xp){ return Math.floor(xp / LEVELS_XP) + 1; }
+function levelProgress(xp){ return xp % LEVELS_XP; }
+
+/* =========================================================
+   KUNLIK VAZIFALAR
+   Har kuni yarim tunda avtomatik yangilanadi. XP bir marta beriladi —
+   olingan[id] belgisi takroriy mukofotni to'xtatadi.
+   ========================================================= */
+const KUNLIK_VAZIFALAR = [
+  { id:'test',  nom:"Bitta testni yakunlang",       maqsad:1,  xp:20, ic:"\u{1F4DD}" },
+  { id:'quiz',  nom:"Tezkor quiz o'ynang",          maqsad:1,  xp:15, ic:"⚡"    },
+  { id:'togri', nom:"10 ta to'g'ri javob bering",   maqsad:10, xp:25, ic:"✅"    },
+  { id:'ustoz', nom:"AI Ustozga 2 ta savol bering", maqsad:2,  xp:15, ic:"\u{1F4AC}" }
+];
+
+function bugun(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function kunlikHolat(){
+  if (!STATE.kunlik || STATE.kunlik.sana !== bugun()){
+    STATE.kunlik = { sana: bugun(), hisob:{}, olingan:{} };
+  }
+  return STATE.kunlik;
+}
+
+function kunlikOshir(id, son){
+  const k = kunlikHolat();
+  const v = KUNLIK_VAZIFALAR.find(x=>x.id===id);
+  if (!v) return;
+  k.hisob[id] = (k.hisob[id]||0) + (son||1);
+  if (!k.olingan[id] && k.hisob[id] >= v.maqsad){
+    k.olingan[id] = true;
+    STATE.xp += v.xp;
+    toast("Kunlik vazifa bajarildi: " + v.nom + " — +" + v.xp + " XP");
+  }
+  persist();
+}
+
+function kunlikTugallangan(){ const k=kunlikHolat(); return KUNLIK_VAZIFALAR.filter(v=>k.olingan[v.id]).length; }
+
+/* ---------- BADGE'LAR ---------- */
+function badgeRoyxati(){
+  const xp = STATE.xp, testlar = STATE.results.length;
+  const mastered = Object.keys(CONCEPTS).filter(c=>masteryInfo(c).ozlashtirilgan).length;
+  const jamiSavol = Object.values(STATE.mastery||{}).reduce((a,m)=>a+(m.jami||0),0);
+  const toliq = STATE.results.filter(r=>r.foiz===100).length;
+  return [
+    {nom:"Birinchi qadam", tavsif:"Birinchi testni yakunlang",      got: testlar>=1,     ic:"\u{1F3AF}"},
+    {nom:"100 XP",         tavsif:"100 XP to'plang",                got: xp>=100,        ic:"⭐"},
+    {nom:"Mavzu egasi",    tavsif:"Bitta mavzuni 80% o'zlashtiring",got: mastered>=1,    ic:"\u{1F3C6}"},
+    {nom:"Qat'iyat",       tavsif:"3 ta test yakunlang",            got: testlar>=3,     ic:"\u{1F525}"},
+    {nom:"Benuqson",       tavsif:"Bitta testni 100% ishlang",      got: toliq>=1,       ic:"\u{1F48E}"},
+    {nom:"Mehnatkash",     tavsif:"50 ta savolga javob bering",     got: jamiSavol>=50,  ic:"\u{1F4AA}"},
+    {nom:"Bilimdon",       tavsif:"3 ta mavzuni o'zlashtiring",     got: mastered>=3,    ic:"\u{1F9E0}"},
+    {nom:"Ustoz",          tavsif:"5-levelga yeting",               got: levelOf(xp)>=5, ic:"\u{1F451}"}
+  ];
+}
+function olinganBadge(){ return badgeRoyxati().filter(b=>b.got).length; }
+
+function toast(msg){
+  const el = document.createElement('div');
+  el.className = 'toast bg-navy text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-soft';
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .25s'; setTimeout(()=>el.remove(),250); }, 2200);
+}
+
+/* ---------- IKONALAR (kichik SVG to'plam) ---------- */
+const ICONS = {
+  search:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>`,
+  menu:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`,
+  close:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  book:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 016.5 2H20v17H6.5A2.5 2.5 0 004 16.5v-12z"/><path d="M4 16.5A2.5 2.5 0 016.5 19H20"/></svg>`,
+  spark:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg>`,
+  gamepad:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="4"/><path d="M7 10v4M5 12h4M15.5 11.5h.01M18 13.5h.01"/></svg>`,
+  library:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V6a1 1 0 011-1h4v16"/><path d="M9 21V3h4v18"/><path d="M13 21V8l6-2v15"/></svg>`,
+  user:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>`,
+  chart:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>`,
+  arrowR:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`,
+  chevD:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
+  clock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,
+  tasks:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>`,
+  star:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.7 1.7 7-6.3-3.8-6.3 3.8 1.7-7L2 9.3l7.1-.7z"/></svg>`,
+  bookmark:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg>`,
+  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>`,
+  refresh:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11A8 8 0 105.5 16.5M20 11V4M20 11h-7"/></svg>`,
+  print:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="6" y="13" width="12" height="8"/><path d="M4 9h16v6H4z"/></svg>`,
+  wheel:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>`,
+  box:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>`,
+  bolt:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>`,
+  link:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7a5 5 0 010-10h2M15 7h2a5 5 0 010 10h-2M8 12h8"/></svg>`,
+  shuffle:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h4l7 12h4M14 6h4l3 3-3 3M3 18h4l3-4"/></svg>`,
+  flag:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M5 4h13l-3 4 3 4H5"/></svg>`,
+  grid:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`,
+  moon:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>`,
+  sun:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`,
+  school:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 8l10 5 10-5-10-5z"/><path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5"/></svg>`,
+  trophy:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 01-10 0V4z"/><path d="M7 5H4a3 3 0 003 3M17 5h3a3 3 0 01-3 3"/></svg>`
+};
+function icon(name, cls){ return `<span class="${cls||'w-5 h-5'} inline-block">${ICONS[name]||''}</span>`; }
+
+/* ---------- YORDAMCHI FUNKSIYALAR ---------- */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function go(route){ STATE.route = route; location.hash = route; }
+function qs(sel, root=document){ return (root||document).querySelector(sel); }
+function qsa(sel, root=document){ return Array.from((root||document).querySelectorAll(sel)); }
+
+/* =========================================================
+   LAYOUT: HEADER / FOOTER / MOBILE MENU
+   ========================================================= */
+function navLinks(){
+  return STATE.user
+    ? [ {label:"Panel", route:"#/panel"},
+        {label:"AI Ustoz", route:"#/ustoz"},
+        {label:"Testlar", route:"#/testlar"},
+        {label:"Tezkor quiz", route:"#/quiz"},
+        {label:"Rivojim", route:"#/rivoj"},
+        {label:"Reyting", route:"#/reyting"} ]
+    : [ {label:"Bosh sahifa", route:"#/"},
+        {label:"Imkoniyatlar", route:"#/", scroll:"imkoniyatlar"},
+        {label:"Qanday ishlaydi", route:"#/", scroll:"qadamlar"},
+        {label:"Savollar", route:"#/", scroll:"faq"} ];
+}
+
+function Logo(){
+  return `<a href="#/" class="flex items-center gap-2.5 shrink-0 group">
+    <span class="w-9 h-9 rounded-xl grad-brand flex items-center justify-center shadow-soft group-hover:scale-105 transition-transform">
+      <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 4.5-9 4.5-9-4.5L12 3z"/><path d="M6.5 10v5c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3v-5"/></svg>
+    </span>
+    <span class="font-display font-bold text-lg tracking-tight text-ink">X<span class="text-[var(--indigo)]">-edu</span></span>
+  </a>`;
+}
+
+function Header(){
+  const active = STATE.route;
+  const links = navLinks().map(l => l.scroll
+    ? `<button data-action="scroll-to" data-target="${l.scroll}" class="px-3 py-2 rounded-lg text-sm font-medium text-inksoft hover:text-ink hover:bg-linesoft">${l.label}</button>`
+    : `<a href="${l.route}" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active===l.route ? 'text-[var(--indigo)] bg-indigo2-50' : 'text-inksoft hover:text-ink hover:bg-linesoft'}">${l.label}</a>`
+  ).join('');
+  const userBox = STATE.user ? `
+    <div class="relative" id="user-menu-wrap">
+      <button data-action="toggle-user-menu" class="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border border-line hover:bg-linesoft">
+        <span class="w-7 h-7 rounded-full grad-brand text-white flex items-center justify-center text-xs font-bold">${STATE.user.ism.slice(0,1)}</span>
+        <span class="text-sm font-medium hidden sm:inline">${STATE.user.ism.split(' ')[0]}</span>
+        ${icon('chevD','w-4 h-4 text-inksoft')}
+      </button>
+      <div id="user-menu" class="hidden absolute right-0 mt-2 w-52 card shadow-soft py-2 z-30">
+        <a href="#/panel" class="block px-4 py-2 text-sm hover:bg-linesoft">Boshqaruv paneli</a>
+        <a href="#/rivoj" class="block px-4 py-2 text-sm hover:bg-linesoft">Mening rivojim</a>
+        <button data-action="reset-data" class="w-full text-left px-4 py-2 text-sm hover:bg-linesoft text-inksoft">Ma'lumotlarni tozalash</button>
+        <button data-action="logout" class="w-full text-left px-4 py-2 text-sm hover:bg-linesoft text-red-500">Chiqish</button>
+      </div>
+    </div>` : `
+    <button data-action="open-auth" data-mode="login" class="btn btn-ghost px-4 py-2 text-sm">Kirish</button>
+    <button data-action="open-auth" data-mode="register" class="btn btn-primary px-4 py-2 text-sm">Ro'yxatdan o'tish</button>`;
+
+  return `
+  <header class="sticky top-0 z-40 bg-surface/90 backdrop-blur border-b border-line">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      ${Logo()}
+      <nav class="hidden lg:flex items-center gap-1">${links}</nav>
+      <div class="flex items-center gap-2">
+        <button data-action="toggle-theme" class="w-9 h-9 rounded-full border border-line flex items-center justify-center hover:bg-linesoft" title="Mavzuni almashtirish">
+          <span class="w-4 h-4 text-inksoft">${document.documentElement.getAttribute('data-theme')==='dark' ? ICONS.sun : ICONS.moon}</span>
+        </button>
+        ${userBox}
+        <button data-action="toggle-menu" class="lg:hidden w-9 h-9 rounded-full border border-line flex items-center justify-center">
+          <span class="w-5 h-5">${ICONS.menu}</span>
+        </button>
+      </div>
+    </div>
+    ${STATE.menuOpen ? MobileMenu() : ''}
+  </header>`;
+}
+
+function MobileMenu(){
+  const links = navLinks().map(l => l.scroll
+    ? `<button data-action="scroll-to" data-target="${l.scroll}" class="block w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-linesoft">${l.label}</button>`
+    : `<a href="${l.route}" class="block px-4 py-3 rounded-xl text-sm font-medium hover:bg-linesoft">${l.label}</a>`
+  ).join('');
+  return `
+  <div class="lg:hidden border-t border-line bg-surface fade-up">
+    <div class="pt-2"></div>
+    ${links}
+    <div class="border-t border-line mt-2 pt-2 px-4 pb-4 flex flex-col gap-2">
+      ${!STATE.user ? `
+        <button data-action="open-auth" data-mode="login" class="btn btn-ghost py-2.5 w-full">Kirish</button>
+        <button data-action="open-auth" data-mode="register" class="btn btn-primary py-2.5 w-full">Ro'yxatdan o'tish</button>` : `
+        <a href="#/panel" class="btn btn-ghost py-2.5 w-full">Boshqaruv paneli</a>
+        <button data-action="logout" class="btn btn-ghost py-2.5 w-full text-red-500">Chiqish</button>`}
+    </div>
+  </div>`;
+}
+
+function Footer(){
+  return `
+  <footer class="bg-navy text-white mt-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-14 grid grid-cols-2 md:grid-cols-5 gap-8">
+      <div class="col-span-2">
+        <div class="flex items-center gap-2.5 mb-3">
+          <span class="w-9 h-9 rounded-xl grad-brand flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 4.5-9 4.5-9-4.5L12 3z"/><path d="M6.5 10v5c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3v-5"/></svg></span>
+          <span class="font-display font-bold text-lg">X-edu</span>
+        </div>
+        <p class="text-sm text-white/60 max-w-xs leading-relaxed">O'quvchiga mavzuni tushuntiradigan, bilimini tekshiradigan va xatosining sababini topib, keyingi o'rganish yo'lini ko'rsatadigan o'zbek tilidagi AI ta'lim platformasi.</p>
+      </div>
+      <div>
+        <h4 class="font-display font-semibold mb-3 text-sm">Platforma</h4>
+        <ul class="space-y-2 text-sm text-white/60">
+          <li><a href="#/ustoz" class="hover:text-white">AI Ustoz</a></li>
+          <li><a href="#/testlar" class="hover:text-white">Testlar</a></li>
+          <li><a href="#/quiz" class="hover:text-white">Tezkor quiz</a></li>
+          <li><a href="#/rivoj" class="hover:text-white">Mening rivojim</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-display font-semibold mb-3 text-sm">Kompaniya</h4>
+        <ul class="space-y-2 text-sm text-white/60">
+          <li><a href="#/haqimizda" class="hover:text-white">Biz haqimizda</a></li>
+          <li><a href="#/aloqa" class="hover:text-white">Aloqa</a></li>
+          <li><a href="#/yordam" class="hover:text-white">Yordam</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-display font-semibold mb-3 text-sm">Huquqiy</h4>
+        <ul class="space-y-2 text-sm text-white/60">
+          <li><a href="#/maxfiylik" class="hover:text-white">Maxfiylik siyosati</a></li>
+          <li><a href="#/shartlar" class="hover:text-white">Foydalanish shartlari</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-white/50">
+        <span>© 2026 X-edu. Barcha huquqlar himoyalangan.</span>
+        <div class="flex items-center gap-4">
+          <a href="#" class="hover:text-white">Telegram</a>
+          <a href="#" class="hover:text-white">Instagram</a>
+        </div>
+      </div>
+    </div>
+  </footer>`;
+}
+
+/* =========================================================
+   BOSH SAHIFA
+   ========================================================= */
+function StatStrip(){
+  const stats = [["6000+","ta'lim materiali"],["1000+","tayyor dars"],["1–11","sinflar"],["40+","fan"]];
+  return `<div class="flex flex-wrap divide-x divide-line border border-line rounded-2xl bg-surface overflow-hidden">
+    ${stats.map(s=>`<div class="flex-1 min-w-[140px] px-5 py-4 text-center sm:text-left">
+      <div class="font-display text-2xl font-bold text-ink">${s[0]}</div>
+      <div class="text-xs text-inksoft mt-0.5">${s[1]}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function HeroSearchPills(){
+  const pills = [["Darslar","#/darslar"],["Testlar","#/darslar"],["Materiallar","#/kutubxona"],["O'yinlar","#/oyinlar"],["Kitoblar","#/kutubxona"]];
+  return `<div class="flex flex-wrap gap-2 mt-4">
+    ${pills.map(p=>`<a href="${p[1]}" class="chip">${p[0]}</a>`).join('')}
+  </div>`;
+}
+
+function HeroArt(){
+  // original abstract "AI + education" network illustration
+  return `
+  <svg viewBox="0 0 460 420" class="w-full h-auto max-w-md mx-auto">
+    <defs>
+      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#4338CA"/><stop offset="1" stop-color="#8B5CF6"/>
+      </linearGradient>
+      <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#4338CA"/>
+      </linearGradient>
+    </defs>
+    <circle cx="230" cy="210" r="150" fill="url(#g1)" opacity="0.08"/>
+    <g stroke="#4338CA" stroke-opacity="0.35" stroke-width="1.5">
+      <line x1="230" y1="90" x2="120" y2="160"/>
+      <line x1="230" y1="90" x2="340" y2="160"/>
+      <line x1="120" y1="160" x2="230" y2="230"/>
+      <line x1="340" y1="160" x2="230" y2="230"/>
+      <line x1="120" y1="160" x2="90" y2="270"/>
+      <line x1="340" y1="160" x2="370" y2="270"/>
+      <line x1="230" y1="230" x2="230" y2="330"/>
+      <line x1="90" y1="270" x2="230" y2="330"/>
+      <line x1="370" y1="270" x2="230" y2="330"/>
+    </g>
+    <circle cx="230" cy="90" r="26" fill="url(#g1)"/>
+    <circle cx="120" cy="160" r="20" fill="#fff" stroke="#4338CA" stroke-width="2"/>
+    <circle cx="340" cy="160" r="20" fill="#fff" stroke="#7C3AED" stroke-width="2"/>
+    <circle cx="230" cy="230" r="30" fill="url(#g2)"/>
+    <circle cx="90" cy="270" r="16" fill="#fff" stroke="#4338CA" stroke-width="2"/>
+    <circle cx="370" cy="270" r="16" fill="#fff" stroke="#7C3AED" stroke-width="2"/>
+    <circle cx="230" cy="330" r="22" fill="#fff" stroke="#4338CA" stroke-width="2"/>
+    <path d="M222 84l4 8 8 2-8 2-4 8-4-8-8-2 8-2z" fill="#fff"/>
+    <path d="M230 218l5 9 9 3-9 3-5 9-5-9-9-3 9-3z" fill="#fff"/>
+  </svg>`;
+}
+
+function HomePage(){
+  const steps = [
+    {n:"1", t:"Tushuntiradi", d:"AI Ustoz mavzuni o'zbek tilida, misol bilan tushuntiradi.", ic:'spark'},
+    {n:"2", t:"Tekshiradi", d:"Har bir savol aniq mavzuga bog'langan holda test qilinadi.", ic:'tasks'},
+    {n:"3", t:"Xatoni topadi", d:"Nafaqat \"xato\", balki nima sababdan xato qilganingizni aniqlaydi.", ic:'search'},
+    {n:"4", t:"Yo'l ko'rsatadi", d:"Aynan qaysi mavzuni takrorlash kerakligini tavsiya qiladi.", ic:'arrowR'},
+  ];
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-16 grid lg:grid-cols-2 gap-10 items-center">
+    <div class="fade-up">
+      <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--violet)] bg-violet2-50/10 px-3 py-1 rounded-full border border-[var(--violet)]/20">${icon('spark','w-3.5 h-3.5')} O'zbek tilidagi AI ta'lim platformasi</span>
+      <h1 class="font-display text-4xl sm:text-5xl font-bold leading-[1.08] tracking-tight text-ink mt-4">Xatoyingizning <span class="grad-text">sababini</span> topadigan platforma</h1>
+      <p class="text-inksoft mt-5 text-base sm:text-lg leading-relaxed max-w-xl">Oddiy test sizga necha xato qilganingizni aytadi. X-Edu esa <b class="text-ink">qayerda</b>, <b class="text-ink">nima sababdan</b> xato qilganingizni topadi va keyingi o'rganish yo'lini ko'rsatadi.</p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        ${STATE.user
+          ? `<a href="#/panel" class="btn btn-primary px-6 py-3.5">Panelga o'tish ${icon('arrowR','w-4 h-4')}</a>`
+          : `<button data-action="open-auth" data-mode="register" class="btn btn-primary px-6 py-3.5">Bepul boshlash</button>`}
+        <button data-action="scroll-to" data-target="qadamlar" class="btn btn-ghost px-6 py-3.5">Qanday ishlaydi?</button>
+      </div>
+      <p class="text-xs text-inksoft mt-4">Ro'yxatdan o'tish bepul • O'quvchi paneli darhol ochiladi</p>
+    </div>
+    <div class="fade-up order-first lg:order-last">${HeroArt()}</div>
+  </section>
+
+  <section id="muammo" class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="card p-7 sm:p-10 grid lg:grid-cols-2 gap-8">
+      <div>
+        <div class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-3">Muammo</div>
+        <h2 class="font-display text-2xl font-bold">O'quvchi xato qiladi, lekin nima uchun ekanini bilmaydi</h2>
+        <div class="mt-5 space-y-3">
+          ${["Test \"4 ta xato\" deydi, lekin muammoning ildizi qayerdaligini aytmaydi",
+             "O'quvchi qaysi mavzuni takrorlashini bilmay, hammasini qaytadan o'qiydi",
+             "Oddiy AI chat fan dasturini bilmaydi va oldingi xatolarni eslamaydi",
+             "Natijada qiziqish so'nadi — an'anaviy usul bilan bo'shliq yopilmaydi"
+            ].map(x=>`<div class="flex gap-3 text-sm">
+              <span class="w-5 h-5 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0 text-xs font-bold">✕</span>
+              <span class="text-inksoft leading-relaxed">${x}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-3">X-Edu yechimi</div>
+        <h2 class="font-display text-2xl font-bold">Xatoning ildizini topadi va aniq yo'l ko'rsatadi</h2>
+        <div class="mt-5 space-y-3">
+          ${["Har bir savol mavzuga bog'langan — xato qayerdaligi aniq ma'lum",
+             "Mavzular bog'liqlik grafiga joylangan — ildiz sababi topiladi",
+             "AI Ustoz aynan o'sha bo'shliqni o'zbek tilida tushuntiradi",
+             "XP, level va bilim xaritasi qiziqishni saqlaydi"
+            ].map(x=>`<div class="flex gap-3 text-sm">
+              <span class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5">${ICONS.check}</span>
+              <span class="text-inksoft leading-relaxed">${x}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="qadamlar" class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="mb-8 max-w-2xl">
+      <h2 class="font-display text-2xl sm:text-3xl font-bold">X-Edu qanday ishlaydi</h2>
+      <p class="text-inksoft mt-2">To'rtta qadam — yopiq o'rganish halqasi.</p>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      ${steps.map(s=>`
+      <div class="card card-hover p-6 flex flex-col">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="w-11 h-11 rounded-xl grad-brand text-white flex items-center justify-center font-display font-bold">${s.n}</span>
+          <span class="w-9 h-9 rounded-lg bg-indigo2-50 text-[var(--indigo)] flex items-center justify-center">${icon(s.ic,'w-5 h-5')}</span>
+        </div>
+        <h3 class="font-display font-semibold text-lg">${s.t}</h3>
+        <p class="text-sm text-inksoft mt-2 leading-relaxed flex-1">${s.d}</p>
+      </div>`).join('')}
+    </div>
+  </section>
+
+  <section id="imkoniyatlar" class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="mb-8 max-w-2xl">
+      <h2 class="font-display text-2xl sm:text-3xl font-bold">O'quvchi panelidagi imkoniyatlar</h2>
+      <p class="text-inksoft mt-2">Ro'yxatdan o'tgandan so'ng ochiladigan shaxsiy ish maydoni.</p>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      ${[
+        ['spark',"AI Ustoz","Mavzuni tanlang yoki savol yozing — tushuntirish o'zbek tilida, misol bilan keladi."],
+        ['tasks',"Testlar","Uch darajadagi testlar. Har bir savol mavzuga bog'langan, natija to'liq tahlil bo'ladi."],
+        ['bolt',"Tezkor quiz","12 soniyalik o'yin formati. Streak bonusi, ball va XP bilan."],
+        ['search',"Xato tahlili","Xatoning sababi, bog'liqlik zanjiri va tavsiya etilgan mavzu bir ekranda."],
+        ['chart',"Bilim xaritasi","Har bir mavzu bo'yicha o'zlashtirish foizi — qaysi mavzu bo'sh ekani ko'rinib turadi."],
+        ['trophy',"XP, level va yutuqlar","Rivojlanish o'yin mexanikasi bilan — qiziqishni saqlaydi."]
+      ].map(f=>`
+        <div class="card card-hover p-6">
+          <span class="w-11 h-11 rounded-xl bg-indigo2-50 text-[var(--indigo)] flex items-center justify-center mb-4">${icon(f[0],'w-5 h-5')}</span>
+          <h3 class="font-display font-semibold text-lg">${f[1]}</h3>
+          <p class="text-sm text-inksoft mt-2 leading-relaxed">${f[2]}</p>
+        </div>`).join('')}
+    </div>
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="card p-7 sm:p-10 grid lg:grid-cols-2 gap-8 items-center">
+      <div>
+        <h2 class="font-display text-2xl sm:text-3xl font-bold">Nega oddiy AI chat emas?</h2>
+        <div class="mt-6 space-y-4">
+          ${[["O'zbek tilida","Tushuntirishlar o'zbek tilida, o'quvchiga tushunarli til bilan."],
+             ["Fan dasturiga bog'langan","Javoblar umumiy emas — sizning fan dasturingiz mavzularidan kelib chiqadi."],
+             ["Xatolaringizni eslab qoladi","Har bir xato bilim xaritangizga yoziladi va vaqt o'tib rivojingiz ko'rinadi."],
+             ["Sababni topadi","Mavzuda emas, undan oldingi mavzuda qoqilayotganingizni aniqlaydi."]
+            ].map(x=>`
+            <div class="flex gap-3">
+              <span class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5">${ICONS.check}</span>
+              <div><div class="font-semibold text-sm">${x[0]}</div><p class="text-sm text-inksoft mt-0.5 leading-relaxed">${x[1]}</p></div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="bg-linesoft rounded-2xl p-6">
+        <div class="text-xs font-semibold text-inksoft uppercase tracking-wide mb-3">Tahlil namunasi</div>
+        <div class="card p-5">
+          <div class="text-xs font-semibold text-[var(--violet)]">XATONING SABABI</div>
+          <div class="font-display font-bold text-lg mt-1">Oldingi mavzu o'zlashtirilmagan</div>
+          <p class="text-sm text-inksoft mt-2 leading-relaxed">"Kvadrat tenglama" ni yechish uchun avval "Manfiy sonlar" kerak. Xato aslida o'sha yerdan boshlangan.</p>
+          <div class="flex items-center gap-2 mt-4 text-sm flex-wrap">
+            <span class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold border border-red-200">Manfiy sonlar</span>
+            <span class="text-inksoft">${icon('arrowR','w-4 h-4')}</span>
+            <span class="px-3 py-1.5 rounded-lg bg-linesoft text-inksoft">Kvadrat tenglama</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+    <h2 class="font-display text-2xl sm:text-3xl font-bold mb-6 text-center">Ko'p beriladigan savollar</h2>
+    ${FAQAccordion()}
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <div class="grad-brand rounded-3xl px-8 py-14 sm:py-16 text-center text-white relative overflow-hidden">
+      <div class="absolute -top-10 -right-10 w-64 h-64 rounded-full bg-white/10"></div>
+      <div class="absolute -bottom-16 -left-10 w-72 h-72 rounded-full bg-white/10"></div>
+      <h2 class="font-display text-3xl sm:text-4xl font-bold relative">Xatoyingizning sababini bilib oling</h2>
+      <p class="text-white/80 mt-4 max-w-xl mx-auto relative">Bir test ishlang — X-Edu qaysi mavzuni takrorlash kerakligini aytib beradi.</p>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3 relative">
+        ${STATE.user
+          ? `<a href="#/panel" class="btn bg-white text-[var(--indigo)] px-6 py-3.5 hover:bg-white/90">Panelga o'tish</a>`
+          : `<button data-action="open-auth" data-mode="register" class="btn bg-white text-[var(--indigo)] px-6 py-3.5 hover:bg-white/90">Bepul ro'yxatdan o'tish</button>
+             <button data-action="open-auth" data-mode="login" class="btn border border-white/40 text-white px-6 py-3.5 hover:bg-white/10">Hisobim bor</button>`}
+      </div>
+    </div>
+  </section>
+  `;
+}
+
+function FAQAccordion(){
+  return `<div class="space-y-3" id="faq-list">
+    ${FAQS.map((f,i)=>`
+    <div class="card overflow-hidden">
+      <button data-action="toggle-faq" data-i="${i}" class="w-full flex items-center justify-between gap-4 px-5 py-4 text-left">
+        <span class="font-medium text-sm sm:text-base">${f.savol}</span>
+        <span class="faq-chevron w-4 h-4 text-inksoft shrink-0 transition-transform">${ICONS.chevD}</span>
+      </button>
+      <div class="accordion-content px-5" id="faq-content-${i}">
+        <p class="text-sm text-inksoft leading-relaxed pb-4">${f.javob}</p>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* =========================================================
+   DARSLAR
+   ========================================================= */
+let lessonFilters = { sinf: null, fan: null, page: 1 };
+function LessonCard(l){
+  const saved = STATE.saved.includes(l.id);
+  return `
+  <div class="card card-hover p-5 flex flex-col">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-indigo2-50 text-[var(--indigo)]">${l.fan}</span>
+      <span class="text-[11px] font-medium text-inksoft">${l.sinf}-sinf</span>
+    </div>
+    <h3 class="font-display font-semibold text-base leading-snug">${l.mavzu}</h3>
+    <div class="flex items-center gap-4 mt-3 text-xs text-inksoft">
+      <span class="flex items-center gap-1">${icon('clock','w-3.5 h-3.5')} ${l.davomiylik} daqiqa</span>
+      <span class="flex items-center gap-1">${icon('tasks','w-3.5 h-3.5')} ${l.topshiriqlar} topshiriq</span>
+    </div>
+    <div class="mt-5 flex items-center gap-2">
+      <button data-action="view-lesson" data-id="${l.id}" class="btn btn-primary flex-1 py-2.5 text-sm">Ko'rish</button>
+      <button data-action="toggle-save" data-id="${l.id}" data-kind="lesson" class="w-10 h-10 rounded-xl border border-line flex items-center justify-center shrink-0 ${saved?'text-[var(--indigo)] border-[var(--indigo)]':'text-inksoft'}">${icon('bookmark','w-4 h-4')}</button>
+    </div>
+  </div>`;
+}
+
+function LessonsPage(){
+  let list = LESSONS.slice();
+  if (lessonFilters.sinf) list = list.filter(l=>l.sinf===lessonFilters.sinf);
+  if (lessonFilters.fan) list = list.filter(l=>l.fan===lessonFilters.fan);
+  const perPage = 9;
+  const totalPages = Math.max(1, Math.ceil(list.length/perPage));
+  lessonFilters.page = Math.min(lessonFilters.page, totalPages);
+  const pageItems = list.slice((lessonFilters.page-1)*perPage, lessonFilters.page*perPage);
+
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="mb-8">
+      <h1 class="font-display text-3xl font-bold">Tayyor darslar</h1>
+      <p class="text-inksoft mt-2">1–11-sinflar uchun barcha fanlardan tayyor darslar to'plami.</p>
+    </div>
+    <div class="grid lg:grid-cols-[260px_1fr] gap-8">
+      <aside class="space-y-6">
+        <div class="card p-5">
+          <h4 class="font-display font-semibold text-sm mb-3">Sinf</h4>
+          <div class="flex flex-wrap gap-2">
+            <button data-action="filter-lesson" data-type="sinf" data-val="" class="chip ${!lessonFilters.sinf?'active':''}">Barchasi</button>
+            ${GRADES.map(g=>`<button data-action="filter-lesson" data-type="sinf" data-val="${g}" class="chip ${lessonFilters.sinf===g?'active':''}">${g}-sinf</button>`).join('')}
+          </div>
+        </div>
+        <div class="card p-5">
+          <h4 class="font-display font-semibold text-sm mb-3">Fan</h4>
+          <div class="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1">
+            <button data-action="filter-lesson" data-type="fan" data-val="" class="text-left text-sm px-2.5 py-1.5 rounded-lg ${!lessonFilters.fan?'bg-indigo2-50 text-[var(--indigo)] font-medium':'text-inksoft hover:bg-linesoft'}">Barcha fanlar</button>
+            ${SUBJECTS.map(s=>`<button data-action="filter-lesson" data-type="fan" data-val="${s}" class="text-left text-sm px-2.5 py-1.5 rounded-lg ${lessonFilters.fan===s?'bg-indigo2-50 text-[var(--indigo)] font-medium':'text-inksoft hover:bg-linesoft'}">${s}</button>`).join('')}
+          </div>
+        </div>
+      </aside>
+      <div>
+        <div class="flex items-center justify-between mb-5">
+          <span class="text-sm text-inksoft">${list.length} ta dars topildi</span>
+        </div>
+        ${pageItems.length ? `<div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">${pageItems.map(LessonCard).join('')}</div>` : EmptyState("Hech narsa topilmadi","Filtrni o'zgartirib qayta urinib ko'ring.")}
+        ${totalPages>1 ? `
+        <div class="flex items-center justify-center gap-2 mt-9">
+          ${Array.from({length:totalPages},(_,i)=>i+1).map(p=>`<button data-action="lesson-page" data-p="${p}" class="w-9 h-9 rounded-lg text-sm font-medium ${p===lessonFilters.page? 'bg-[var(--indigo)] text-white':'border border-line hover:bg-linesoft'}">${p}</button>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>
+  </section>`;
+}
+
+function EmptyState(title, sub){
+  return `<div class="card p-12 text-center">
+    <div class="w-14 h-14 mx-auto rounded-2xl bg-linesoft flex items-center justify-center text-inksoft mb-4">${icon('search','w-6 h-6')}</div>
+    <h3 class="font-display font-semibold text-lg">${title}</h3>
+    <p class="text-sm text-inksoft mt-1.5">${sub}</p>
+  </div>`;
+}
+
+/* =========================================================
+   AI GENERATOR
+   ========================================================= */
+let aiForm = { fan: SUBJECTS[0], sinf: 7, mavzu: '', turi: MATERIAL_TYPES[0], daraja: 'O\'rta', soni: 10 };
+let aiResult = null;
+let aiLoading = false;
+
+function AIGeneratorPage(){
+  return `
+  <section class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+    <div class="mb-8 max-w-2xl no-print">
+      <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--violet)] bg-violet2-50/10 px-3 py-1 rounded-full border border-[var(--violet)]/20">${icon('spark','w-3.5 h-3.5')} AI Generator</span>
+      <h1 class="font-display text-3xl font-bold mt-3">Sun'iy intellekt yordamida material yarating</h1>
+      <p class="text-inksoft mt-2">Fan, sinf va mavzuni tanlang — tizim bir necha soniyada material tayyorlab beradi.</p>
+    </div>
+
+    <div class="card p-6 sm:p-8 no-print">
+      <form id="ai-form" class="grid sm:grid-cols-2 gap-5">
+        <label class="block">
+          <span class="text-sm font-medium mb-1.5 block">Fan</span>
+          <select name="fan" class="w-full border border-line rounded-xl px-3.5 py-2.5 bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40">
+            ${SUBJECTS.map(s=>`<option ${aiForm.fan===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium mb-1.5 block">Sinf</span>
+          <select name="sinf" class="w-full border border-line rounded-xl px-3.5 py-2.5 bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40">
+            ${GRADES.map(g=>`<option ${aiForm.sinf===g?'selected':''} value="${g}">${g}-sinf</option>`).join('')}
+          </select>
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="text-sm font-medium mb-1.5 block">Mavzu</span>
+          <input name="mavzu" type="text" placeholder="Masalan: Kasrlar, Nyuton qonunlari..." value="${aiForm.mavzu}" list="topic-list" class="w-full border border-line rounded-xl px-3.5 py-2.5 bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40"/>
+          <datalist id="topic-list">${(TOPICS[aiForm.fan]||[]).map(t=>`<option value="${t}">`).join('')}</datalist>
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium mb-1.5 block">Material turi</span>
+          <select name="turi" class="w-full border border-line rounded-xl px-3.5 py-2.5 bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40">
+            ${MATERIAL_TYPES.map(t=>`<option ${aiForm.turi===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium mb-1.5 block">Murakkablik</span>
+          <div class="flex gap-2">
+            ${LEVELS.map(l=>`<button type="button" data-action="ai-level" data-val="${l}" class="chip flex-1 text-center ${aiForm.daraja===l?'active':''}">${l}</button>`).join('')}
+          </div>
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="text-sm font-medium mb-1.5 block">Savollar soni</span>
+          <div class="flex gap-2 flex-wrap">
+            ${QCOUNTS.map(n=>`<button type="button" data-action="ai-count" data-val="${n}" class="chip ${aiForm.soni===n?'active':''}">${n}</button>`).join('')}
+          </div>
+        </label>
+      </form>
+      <button data-action="ai-generate" class="btn btn-violet w-full py-3.5 mt-7 text-sm sm:text-base">
+        ${icon('spark','w-5 h-5')} Material yaratish
+      </button>
+    </div>
+
+    <div id="ai-result-wrap" class="mt-8">
+      ${aiLoading ? AILoading() : (aiResult ? AIResult() : '')}
+    </div>
+  </section>`;
+}
+
+function AILoading(){
+  return `<div class="card p-8 fade-up">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-9 h-9 rounded-xl grad-brand flex items-center justify-center text-white animate-pulse">${icon('spark','w-5 h-5')}</span>
+      <div>
+        <div class="font-display font-semibold">AI material tayyorlamoqda...</div>
+        <div class="text-xs text-inksoft">Bu bir necha soniya vaqt oladi</div>
+      </div>
+    </div>
+    <div class="space-y-3">
+      ${Array.from({length:5}).map(()=>`<div class="skel h-4 w-full"></div>`).join('')}
+      <div class="skel h-4 w-2/3"></div>
+    </div>
+  </div>`;
+}
+
+function genQuestion(fan, mavzu, turi, daraja, idx){
+  const verbLevel = { "Oson":"eslang / ayting", "O'rta":"tushuntiring", "Qiyin":"tahlil qiling va asoslang" }[daraja];
+  const mathOps = ['+','-','×','÷'];
+  const isMath = fan==="Matematika";
+  if (turi==="Krossvord"){
+    return { savol: `${idx}. "${mavzu}" mavzusiga oid ${5+idx%4} harfli atamani toping.`, javob: mavzu.split(' ')[0] };
+  }
+  if (turi==="Anagramma"){
+    const word = mavzu.replace(/[^a-zA-Zʻʼ'A-Za-z]/g,'').slice(0, 8) || "ATAMA";
+    return { savol: `${idx}. Harflarni to'g'ri tartibga solib, "${mavzu}" mavzusiga oid so'zni tiklang: ${word.split('').sort(()=>0.5-seedRand(idx*13)).join('-').toUpperCase()}`, javob: word.toUpperCase() };
+  }
+  if (turi==="Moslashtirish"){
+    return { savol: `${idx}. "${mavzu}" mavzusidagi atamani mos ta'rifi bilan bog'lang.`, javob: "—" };
+  }
+  if (turi==="Bo'sh joyni to'ldirish"){
+    return { savol: `${idx}. "${mavzu}" mavzusida: «... — bu ${mavzu.toLowerCase()} bilan bog'liq asosiy tushuncha hisoblanadi». Bo'sh joyni to'ldiring.`, javob: mavzu };
+  }
+  if (turi==="Savol-javob"){
+    return { savol: `${idx}. "${mavzu}" mavzusini o'z so'zlaringiz bilan ${verbLevel}.`, javob: "Erkin javob (o'qituvchi tekshiradi)" };
+  }
+  if (isMath && (turi==="Test"||turi==="Nazorat ishi"||turi==="BSB"||turi==="ChSB")){
+    const a = 2 + Math.floor(seedRand(idx*3+1)*18);
+    const b = 2 + Math.floor(seedRand(idx*7+2)*12);
+    const op = mathOps[Math.floor(seedRand(idx*5)*4)];
+    let expr = `${a} ${op} ${b}`;
+    const variants = [a+b, Math.max(a-b,1), a*1 + 2, a+b+1].map(v=>Math.abs(v));
+    return { savol: `${idx}. ${mavzu} mavzusi bo'yicha masalani yeching: ${expr} = ?`, variantlar: [...new Set(variants)].slice(0,4), javob: null };
+  }
+  // umumiy test savoli
+  const variants = [
+    `${mavzu} ning asosiy xususiyati to'g'ri ko'rsatilgan`,
+    `${mavzu} bilan bog'liq bo'lmagan holat`,
+    `Qisman to'g'ri, lekin to'liq emas ta'rif`,
+    `Umuman aloqasi bo'lmagan variant`
+  ];
+  return { savol: `${idx}. Quyidagilardan qaysi biri "${mavzu}" mavzusiga to'g'ri ta'rif beradi? (${daraja.toLowerCase()} daraja)`, variantlar: variants, javob: variants[0] };
+}
+
+function AIResult(){
+  const r = aiResult;
+  return `<div class="card p-6 sm:p-8 fade-up" id="ai-print-area">
+    <div class="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5 mb-5">
+      <div>
+        <h3 class="font-display font-bold text-xl">${r.turi}: ${r.mavzu}</h3>
+        <div class="flex flex-wrap gap-3 mt-2 text-xs text-inksoft">
+          <span>${r.fan}</span><span>•</span><span>${r.sinf}-sinf</span><span>•</span><span>${r.daraja}</span><span>•</span><span>${r.savollar.length} ta savol</span>
+        </div>
+      </div>
+      <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 flex items-center gap-1">${icon('check','w-3.5 h-3.5')} Tayyor</span>
+    </div>
+    <ol class="space-y-4">
+      ${r.savollar.map(q=>`
+        <li class="text-sm leading-relaxed">
+          <p class="font-medium text-ink">${q.savol}</p>
+          ${q.variantlar ? `<ul class="mt-2 grid sm:grid-cols-2 gap-1.5 text-inksoft">
+            ${q.variantlar.map((v,i)=>`<li class="flex items-center gap-2"><span class="w-5 h-5 rounded-full border border-line flex items-center justify-center text-[10px] shrink-0">${String.fromCharCode(65+i)}</span>${v}</li>`).join('')}
+          </ul>` : ''}
+        </li>`).join('')}
+    </ol>
+    <div class="flex flex-wrap gap-2.5 mt-7 pt-5 border-t border-line">
+      <button data-action="ai-edit" class="btn btn-ghost px-4 py-2.5 text-sm">${icon('edit','w-4 h-4')} Tahrirlash</button>
+      <button data-action="ai-save" class="btn btn-ghost px-4 py-2.5 text-sm">${icon('bookmark','w-4 h-4')} Saqlash</button>
+      <button data-action="ai-print" class="btn btn-ghost px-4 py-2.5 text-sm">${icon('print','w-4 h-4')} Chop etish</button>
+      <button data-action="ai-pdf" class="btn btn-ghost px-4 py-2.5 text-sm">${icon('download','w-4 h-4')} PDF yuklab olish</button>
+      <button data-action="ai-generate" class="btn btn-violet px-4 py-2.5 text-sm ml-auto">${icon('refresh','w-4 h-4')} Qayta yaratish</button>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   O'YINLAR
+   ========================================================= */
+function GamesPage(){
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="mb-8 max-w-2xl">
+      <h1 class="font-display text-3xl font-bold">Darsni o'yin bilan qiziqarli qiling</h1>
+      <p class="text-inksoft mt-2">Mavzularni interaktiv o'yinlar orqali mustahkamlang.</p>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      ${GAMES.map(g=>`
+      <button data-action="open-game" data-id="${g.id}" class="card card-hover p-6 text-left flex flex-col">
+        <span class="w-11 h-11 rounded-xl bg-violet2-50/10 border border-[var(--violet)]/20 text-[var(--violet)] flex items-center justify-center mb-4">${icon(g.icon,'w-5 h-5')}</span>
+        <h3 class="font-display font-semibold">${g.nomi}</h3>
+        <p class="text-sm text-inksoft mt-2 leading-relaxed flex-1">${g.tavsif}</p>
+        <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--violet)]">O'ynash ${icon('arrowR','w-4 h-4')}</span>
+      </button>`).join('')}
+    </div>
+  </section>`;
+}
+
+const GAME_BANK = (()=>{
+  const pool = [];
+  SUBJECTS.forEach(s => (TOPICS[s]||[]).forEach(t => pool.push({fan:s, mavzu:t})));
+  return pool;
+})();
+
+function GameModal(gameId){
+  const g = GAMES.find(x=>x.id===gameId);
+  return `
+  <div class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6" data-action="close-modal-bg">
+    <div class="bg-surface rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 relative fade-up">
+      <button data-action="close-modal" class="absolute right-5 top-5 w-9 h-9 rounded-full hover:bg-linesoft flex items-center justify-center"><span class="w-4 h-4">${ICONS.close}</span></button>
+      <div class="flex items-center gap-3 mb-6">
+        <span class="w-10 h-10 rounded-xl bg-violet2-50/10 border border-[var(--violet)]/20 text-[var(--violet)] flex items-center justify-center">${icon(g.icon,'w-5 h-5')}</span>
+        <h3 class="font-display font-bold text-xl">${g.nomi}</h3>
+      </div>
+      <div id="game-area">${renderGameStart(gameId)}</div>
+    </div>
+  </div>`;
+}
+
+function renderGameStart(gameId){
+  return `<p class="text-sm text-inksoft mb-5">O'yinni boshlash uchun fanni tanlang.</p>
+  <div class="flex flex-wrap gap-2 mb-6">
+    ${SUBJECTS.map(s=>`<button data-action="game-pick-subject" data-game="${gameId}" data-fan="${s}" class="chip">${s}</button>`).join('')}
+  </div>`;
+}
+
+function pickQuestions(fan, n){
+  const items = GAME_BANK.filter(x=>x.fan===fan);
+  const src = items.length ? items : GAME_BANK;
+  const out = [];
+  for(let i=0;i<n;i++){ out.push(src[Math.floor(seedRand(Date.now()%1000+i*7)*src.length)]); }
+  return out;
+}
+
+let gameState = {};
+
+function startGame(gameId, fan){
+  const qs = pickQuestions(fan, 8);
+  gameState = { gameId, fan, qs, idx:0, score:0 };
+  renderGameBody();
+}
+
+function renderGameBody(){
+  const area = document.getElementById('game-area');
+  if (!area) return;
+  const {gameId} = gameState;
+  if (gameId==='g1') area.innerHTML = wheelGameHtml();
+  else if (gameId==='g2') area.innerHTML = boxGameHtml();
+  else if (gameId==='g3') area.innerHTML = wordFindHtml();
+  else if (gameId==='g4') area.innerHTML = quickQuizHtml();
+  else if (gameId==='g5') area.innerHTML = matchGameHtml();
+  else if (gameId==='g6') area.innerHTML = anagramGameHtml();
+  else if (gameId==='g7') area.innerHTML = raceGameHtml();
+  else if (gameId==='g8') area.innerHTML = memoryGameHtml();
+  if (gameId==='g5') initMatchGame();
+  if (gameId==='g8') initMemoryGame();
+  if (gameId==='g4') initQuickQuizTimer();
+}
+
+function gameScoreBar(){
+  return `<div class="flex items-center justify-between mb-5 text-sm">
+    <span class="text-inksoft">${gameState.fan}</span>
+    <span class="font-semibold text-[var(--indigo)]">Ball: ${gameState.score}</span>
+  </div>`;
+}
+
+function wheelGameHtml(){
+  const colors = ['#4338CA','#7C3AED','#5B4FE0','#8B5CF6','#372DAA','#6D3BE0'];
+  const seg = 360/gameState.qs.length;
+  const gradient = gameState.qs.map((q,i)=>`${colors[i%colors.length]} ${i*seg}deg ${(i+1)*seg}deg`).join(',');
+  return `${gameScoreBar()}
+  <div class="flex flex-col items-center">
+    <div class="relative w-64 h-64">
+      <div id="wheel" class="w-64 h-64 rounded-full spin-wheel border-4 border-white shadow-soft" style="background: conic-gradient(${gradient});"></div>
+      <div class="absolute left-1/2 -top-2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[16px] border-t-navy"></div>
+    </div>
+    <button data-action="spin-wheel" class="btn btn-violet px-6 py-3 mt-7">G'ildirakni aylantirish</button>
+    <div id="wheel-question" class="mt-6 w-full text-center"></div>
+  </div>`;
+}
+
+function boxGameHtml(){
+  if (!gameState.boxes) gameState.boxes = Array.from({length:9}, (_,i)=>({opened:false, q: gameState.qs[i % gameState.qs.length], pts: 5*((i%3)+1)}));
+  return `${gameScoreBar()}
+  <div class="grid grid-cols-3 gap-3">
+    ${gameState.boxes.map((b,i)=>`
+      <button data-action="open-box" data-i="${i}" class="aspect-square rounded-2xl flex items-center justify-center text-white font-display font-bold text-lg transition-all ${b.opened? 'bg-linesoft text-inksoft border border-line':'grad-brand hover:scale-[1.03]'}">
+        ${b.opened ? `<span class="text-[11px] px-2 text-center leading-tight text-ink">${b.q.mavzu}<br><span class="text-[var(--indigo)] font-bold">+${b.pts}</span></span>` : icon('box','w-7 h-7')}
+      </button>`).join('')}
+  </div>`;
+}
+
+function wordFindHtml(){
+  if (gameState.idx>=gameState.qs.length) return gameOverHtml();
+  const q = gameState.qs[gameState.idx];
+  const hint = q.mavzu.replace(/[a-zA-ZʻʼA-Za-z]/g,'_').split('').join(' ');
+  return `${gameScoreBar()}
+  <p class="text-sm text-inksoft mb-2">Savol ${gameState.idx+1} / ${gameState.qs.length} — ${q.fan} faniga oid atamani toping:</p>
+  <div class="font-display text-2xl tracking-widest text-center py-6 bg-linesoft rounded-2xl mb-5">${hint}</div>
+  <form data-action="wordfind-submit" class="flex gap-2">
+    <input name="answer" autocomplete="off" placeholder="Javobingizni yozing..." class="flex-1 border border-line rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40"/>
+    <button class="btn btn-primary px-5">Tekshirish</button>
+  </form>
+  <p class="text-xs text-inksoft mt-3">Maslahat: to'liq javob "${q.mavzu}" bo'lishi mumkin.</p>`;
+}
+
+function quickQuizHtml(){
+  if (gameState.idx>=gameState.qs.length) return gameOverHtml();
+  const q = gameState.qs[gameState.idx];
+  const opts = [q.mavzu, ...GAME_BANK.filter(x=>x.mavzu!==q.mavzu).slice(0,3).map(x=>x.mavzu)].sort(()=>0.5-seedRand(gameState.idx*9));
+  gameState.currentOpts = opts; gameState.currentAnswer = q.mavzu;
+  return `${gameScoreBar()}
+  <p class="text-sm text-inksoft mb-2">Savol ${gameState.idx+1} / ${gameState.qs.length}</p>
+  <div class="flex items-center justify-between mb-4">
+    <p class="font-display font-semibold">${q.fan} mavzusini aniqlang:</p>
+    <span id="quiz-timer" class="text-sm font-bold text-[var(--violet)]">10</span>
+  </div>
+  <div class="grid sm:grid-cols-2 gap-2.5">
+    ${opts.map(o=>`<button data-action="quiz-answer" data-val="${o}" class="chip text-left px-4 py-3">${o}</button>`).join('')}
+  </div>`;
+}
+let quizTimerHandle = null;
+function initQuickQuizTimer(){
+  clearInterval(quizTimerHandle);
+  let t = 10;
+  quizTimerHandle = setInterval(()=>{
+    t--;
+    const el = document.getElementById('quiz-timer');
+    if (el) el.textContent = t;
+    if (t<=0){ clearInterval(quizTimerHandle); handleQuizAnswer(null); }
+  }, 1000);
+}
+function handleQuizAnswer(val){
+  clearInterval(quizTimerHandle);
+  if (val && val===gameState.currentAnswer) { gameState.score += 10; toast("To'g'ri! +10 ball"); }
+  else toast("Noto'g'ri javob");
+  gameState.idx++;
+  renderGameBody();
+}
+
+function matchGameHtml(){
+  if (!gameState.pairs){
+    const items = gameState.qs.slice(0,6);
+    gameState.pairs = items;
+    gameState.leftPick = null;
+    gameState.matched = [];
+    gameState.left = [...items].sort(()=>0.5-seedRand(1));
+    gameState.right = [...items].sort(()=>0.5-seedRand(2));
+  }
+  return `${gameScoreBar()}
+  <p class="text-sm text-inksoft mb-4">Fanni ta'rifi (mavzusi) bilan moslang.</p>
+  <div class="grid grid-cols-2 gap-6">
+    <div class="space-y-2" id="match-left">
+      ${gameState.left.map((it,i)=>`<button data-action="match-left" data-i="${i}" class="w-full text-left chip py-2.5 ${gameState.matched.includes(it.mavzu)?'opacity-40 pointer-events-none':''} ${gameState.leftPick===i?'active':''}">${it.fan}</button>`).join('')}
+    </div>
+    <div class="space-y-2" id="match-right">
+      ${gameState.right.map((it,i)=>`<button data-action="match-right" data-i="${i}" class="w-full text-left chip py-2.5 ${gameState.matched.includes(it.mavzu)?'opacity-40 pointer-events-none':''}">${it.mavzu}</button>`).join('')}
+    </div>
+  </div>
+  ${gameState.matched.length===gameState.pairs.length ? `<div class="mt-6">${gameOverHtml()}</div>`:''}`;
+}
+function initMatchGame(){}
+
+function anagramGameHtml(){
+  if (gameState.idx>=gameState.qs.length) return gameOverHtml();
+  const q = gameState.qs[gameState.idx];
+  const word = q.mavzu.replace(/[^A-Za-zʻʼ ]/g,'').split(' ')[0] || 'ATAMA';
+  const scrambled = word.split('').sort(()=>0.5-seedRand(gameState.idx*17)).join(' ').toUpperCase();
+  gameState.currentWord = word.toUpperCase();
+  return `${gameScoreBar()}
+  <p class="text-sm text-inksoft mb-2">Savol ${gameState.idx+1} / ${gameState.qs.length} — ${q.fan}</p>
+  <div class="font-display text-3xl tracking-[0.3em] text-center py-8 bg-linesoft rounded-2xl mb-5">${scrambled}</div>
+  <form data-action="anagram-submit" class="flex gap-2">
+    <input name="answer" autocomplete="off" placeholder="To'g'ri so'zni yozing..." class="flex-1 border border-line rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40"/>
+    <button class="btn btn-primary px-5">Tekshirish</button>
+  </form>`;
+}
+
+function raceGameHtml(){
+  if (!gameState.pos) gameState.pos = {me:0, bot:0};
+  if (gameState.idx>=gameState.qs.length || gameState.pos.me>=100 || gameState.pos.bot>=100) return gameOverHtml();
+  const q = gameState.qs[gameState.idx];
+  const opts = [q.mavzu, ...GAME_BANK.filter(x=>x.mavzu!==q.mavzu).slice(0,2).map(x=>x.mavzu)].sort(()=>0.5-seedRand(gameState.idx*3));
+  gameState.currentAnswer = q.mavzu;
+  return `${gameScoreBar()}
+  <div class="space-y-3 mb-6">
+    <div>
+      <div class="flex justify-between text-xs mb-1 text-inksoft"><span>Siz</span><span>${gameState.pos.me}%</span></div>
+      <div class="h-3 rounded-full bg-linesoft overflow-hidden"><div class="h-full grad-brand rounded-full transition-all" style="width:${gameState.pos.me}%"></div></div>
+    </div>
+    <div>
+      <div class="flex justify-between text-xs mb-1 text-inksoft"><span>Raqib</span><span>${gameState.pos.bot}%</span></div>
+      <div class="h-3 rounded-full bg-linesoft overflow-hidden"><div class="h-full bg-inksoft/50 rounded-full transition-all" style="width:${gameState.pos.bot}%"></div></div>
+    </div>
+  </div>
+  <p class="font-display font-semibold mb-3">${q.fan} mavzusini toping:</p>
+  <div class="grid gap-2.5">${opts.map(o=>`<button data-action="race-answer" data-val="${o}" class="chip text-left px-4 py-3">${o}</button>`).join('')}</div>`;
+}
+
+function memoryGameHtml(){
+  if (!gameState.cards){
+    const items = gameState.qs.slice(0,6);
+    let cards = [];
+    items.forEach((it,i)=>{ cards.push({id:i+'a', pair:i, label:it.fan}); cards.push({id:i+'b', pair:i, label:it.fan}); });
+    cards = cards.sort(()=>0.5-seedRand(3));
+    gameState.cards = cards; gameState.flipped = []; gameState.matched = []; gameState.moves = 0;
+  }
+  return `${gameScoreBar()}
+  <p class="text-sm text-inksoft mb-4">Bir xil juftlikni toping. Harakatlar: ${gameState.moves}</p>
+  <div class="grid grid-cols-4 gap-2.5" id="memory-grid">
+    ${gameState.cards.map((c,i)=>{
+      const shown = gameState.flipped.includes(i) || gameState.matched.includes(c.pair);
+      return `<button data-action="memory-flip" data-i="${i}" class="flip-card aspect-square ${gameState.matched.includes(c.pair)?'pointer-events-none':''}">
+        <div class="w-full h-full rounded-xl ${shown?'bg-indigo2-50 border-2 border-[var(--indigo)]':'grad-brand'} flex items-center justify-center text-center p-1">
+          <span class="text-[10px] sm:text-xs font-semibold ${shown?'text-[var(--indigo)]':'text-white'}">${shown ? c.label : ''}</span>
+        </div>
+      </button>`;
+    }).join('')}
+  </div>
+  ${gameState.matched.length===6 ? `<div class="mt-6">${gameOverHtml()}</div>` : ''}`;
+}
+function initMemoryGame(){}
+
+function gameOverHtml(){
+  return `<div class="text-center py-6">
+    <span class="w-16 h-16 rounded-full grad-brand text-white flex items-center justify-center mx-auto mb-4">${icon('trophy','w-8 h-8')}</span>
+    <h3 class="font-display font-bold text-xl">O'yin yakunlandi!</h3>
+    <p class="text-inksoft mt-1.5">To'plagan ballingiz: <span class="font-bold text-[var(--indigo)]">${gameState.score}</span></p>
+    <div class="flex justify-center gap-2.5 mt-6">
+      <button data-action="open-game" data-id="${gameState.gameId}" class="btn btn-ghost px-5 py-2.5">Boshqa fan</button>
+      <button data-action="close-modal" class="btn btn-primary px-5 py-2.5">Yopish</button>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   KUTUBXONA
+   ========================================================= */
+let libFilters = { fan:null, sinf:null, til:null, turi:null };
+function BookCard(b){
+  const saved = STATE.saved.includes(b.id);
+  return `<div class="card card-hover p-5 flex gap-4">
+    <div class="w-16 h-20 rounded-lg grad-brand shrink-0 flex items-center justify-center text-white">${icon('book','w-6 h-6')}</div>
+    <div class="flex-1 min-w-0">
+      <h3 class="font-display font-semibold text-sm leading-snug">${b.nomi}</h3>
+      <p class="text-xs text-inksoft mt-1">${b.muallif}</p>
+      <div class="flex flex-wrap gap-1.5 mt-2">
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-linesoft text-inksoft">${b.sinf}-sinf</span>
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-linesoft text-inksoft">${b.til}</span>
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-linesoft text-inksoft">${b.yil}</span>
+      </div>
+      <div class="flex items-center gap-2 mt-3">
+        <button data-action="read-book" data-id="${b.id}" class="text-xs font-semibold text-[var(--indigo)]">O'qish</button>
+        <span class="text-line">|</span>
+        <button data-action="toggle-save" data-id="${b.id}" data-kind="book" class="text-xs font-semibold ${saved?'text-[var(--indigo)]':'text-inksoft'}">${saved?'Saqlangan':'Saqlash'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+function LibraryPage(){
+  let list = BOOKS.slice();
+  if (libFilters.fan) list = list.filter(b=>b.fan===libFilters.fan);
+  if (libFilters.sinf) list = list.filter(b=>b.sinf===libFilters.sinf);
+  if (libFilters.til) list = list.filter(b=>b.til===libFilters.til);
+  if (libFilters.turi) list = list.filter(b=>b.turi===libFilters.turi);
+  const turlar = ["Darsliklar","Metodik qo'llanmalar","Ish daftarlari","Badiiy adabiyot","Qo'shimcha materiallar"];
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="mb-8 max-w-2xl">
+      <h1 class="font-display text-3xl font-bold">Katta elektron kutubxona</h1>
+      <p class="text-inksoft mt-2">Darsliklar, metodik qo'llanmalar va boshqa foydali materiallar.</p>
+    </div>
+    <div class="flex flex-wrap gap-2 mb-6">
+      ${turlar.map(t=>`<button data-action="lib-filter" data-type="turi" data-val="${t}" class="chip ${libFilters.turi===t?'active':''}">${t}</button>`).join('')}
+      ${libFilters.turi ? `<button data-action="lib-filter" data-type="turi" data-val="" class="chip">Tozalash</button>`:''}
+    </div>
+    <div class="flex flex-wrap gap-3 mb-8">
+      <select data-action="lib-select" data-type="fan" class="border border-line rounded-xl px-3 py-2 text-sm bg-surface">
+        <option value="">Barcha fanlar</option>${SUBJECTS.map(s=>`<option ${libFilters.fan===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <select data-action="lib-select" data-type="sinf" class="border border-line rounded-xl px-3 py-2 text-sm bg-surface">
+        <option value="">Barcha sinflar</option>${GRADES.map(g=>`<option ${libFilters.sinf===g?'selected':''} value="${g}">${g}-sinf</option>`).join('')}
+      </select>
+      <select data-action="lib-select" data-type="til" class="border border-line rounded-xl px-3 py-2 text-sm bg-surface">
+        <option value="">Barcha tillar</option>${["O'zbek","Rus","Ingliz"].map(t=>`<option ${libFilters.til===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    ${list.length ? `<div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">${list.map(BookCard).join('')}</div>` : EmptyState("Kitob topilmadi","Filtrni tozalab qayta urinib ko'ring.")}
+  </section>`;
+}
+
+/* =========================================================
+   QIDIRUV
+   ========================================================= */
+function SearchPage(){
+  const q = (STATE.searchQuery||'').toLowerCase().trim();
+  const lessons = q ? LESSONS.filter(l=>(l.mavzu+l.fan).toLowerCase().includes(q)).slice(0,6) : [];
+  const books = q ? BOOKS.filter(b=>(b.nomi+b.muallif+b.fan).toLowerCase().includes(q)).slice(0,6) : [];
+  const games = q ? GAMES.filter(g=>(g.nomi+g.tavsif).toLowerCase().includes(q)) : [];
+  const total = lessons.length+books.length+games.length;
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <h1 class="font-display text-2xl sm:text-3xl font-bold mb-2">"${STATE.searchQuery||''}" bo'yicha qidiruv natijalari</h1>
+    <p class="text-inksoft mb-8">${total} ta natija topildi</p>
+    ${total===0 ? EmptyState("Natija topilmadi","Boshqa kalit so'z bilan urinib ko'ring.") : ''}
+    ${lessons.length ? `<div class="mb-10"><h2 class="font-display font-semibold text-lg mb-4">Darslar</h2><div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">${lessons.map(LessonCard).join('')}</div></div>` : ''}
+    ${books.length ? `<div class="mb-10"><h2 class="font-display font-semibold text-lg mb-4">Kutubxona</h2><div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">${books.map(BookCard).join('')}</div></div>` : ''}
+    ${games.length ? `<div class="mb-10"><h2 class="font-display font-semibold text-lg mb-4">O'yinlar</h2><div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">${games.map(g=>`
+      <button data-action="open-game" data-id="${g.id}" class="card card-hover p-5 text-left">
+        <span class="w-9 h-9 rounded-lg bg-violet2-50/10 text-[var(--violet)] flex items-center justify-center mb-3">${icon(g.icon,'w-5 h-5')}</span>
+        <h3 class="font-display font-semibold text-sm">${g.nomi}</h3>
+      </button>`).join('')}</div></div>` : ''}
+  </section>`;
+}
+
+/* =========================================================
+   TARIFLAR
+   ========================================================= */
+function PricingPage(){
+  const yearly = STATE.billing==='yillik';
+  return `
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    <div class="text-center max-w-xl mx-auto mb-10">
+      <h1 class="font-display text-3xl sm:text-4xl font-bold">Tariflar</h1>
+      <p class="text-inksoft mt-3">Ehtiyojingizga mos tarifni tanlang va imkoniyatlarni kengaytiring.</p>
+      <div class="inline-flex items-center gap-1 bg-linesoft rounded-full p-1 mt-6">
+        <button data-action="billing" data-val="oylik" class="px-4 py-2 rounded-full text-sm font-semibold ${!yearly?'bg-surface shadow-soft':'text-inksoft'}">Oylik</button>
+        <button data-action="billing" data-val="yillik" class="px-4 py-2 rounded-full text-sm font-semibold ${yearly?'bg-surface shadow-soft':'text-inksoft'}">Yillik <span class="text-emerald-500">−17%</span></button>
+      </div>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-6">
+      ${PLANS.map(p=>{
+        const price = yearly ? p.yillik : p.oylik;
+        return `<div class="card p-7 relative ${p.tavsiya?'border-2 border-[var(--indigo)] shadow-soft':''}">
+        ${p.tavsiya ? `<span class="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-semibold px-3 py-1 rounded-full bg-[var(--indigo)] text-white">Tavsiya etiladi</span>`:''}
+        <h3 class="font-display font-bold text-xl">${p.nomi}</h3>
+        <div class="mt-4 flex items-baseline gap-1">
+          <span class="font-display text-3xl font-bold">${price===0?"Bepul":price.toLocaleString('ru-RU').replace(/,/g,' ')}</span>
+          ${price!==0?`<span class="text-inksoft text-sm">so'm / ${yearly?'yil':'oy'}</span>`:''}
+        </div>
+        <ul class="mt-6 space-y-2.5">
+          ${p.xususiyat.map(x=>`<li class="flex items-start gap-2 text-sm"><span class="w-5 h-5 text-emerald-500 mt-0.5 shrink-0">${ICONS.check}</span>${x}</li>`).join('')}
+        </ul>
+        <button data-action="choose-plan" data-plan="${p.nomi}" class="btn ${p.tavsiya?'btn-primary':'btn-ghost'} w-full py-3 mt-7">Tanlash</button>
+      </div>`;
+      }).join('')}
+    </div>
+  </section>`;
+}
+
+/* =========================================================
+   AUTENTIFIKATSIYA MODALLARI
+   ========================================================= */
+let authMode = 'login';
+function AuthModal(){
+  const isLogin = authMode==='login';
+  return `
+  <div class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6" data-action="close-modal-bg">
+    <div class="bg-surface rounded-3xl max-w-md w-full p-7 sm:p-8 relative fade-up">
+      <button data-action="close-modal" class="absolute right-5 top-5 w-9 h-9 rounded-full hover:bg-linesoft flex items-center justify-center"><span class="w-4 h-4">${ICONS.close}</span></button>
+      <div class="flex items-center gap-2.5 mb-6">
+        <span class="w-9 h-9 rounded-xl grad-brand flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 4.5-9 4.5-9-4.5L12 3z"/></svg></span>
+        <span class="font-display font-bold text-lg">X-edu</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl">${isLogin? 'Xush kelibsiz':"Ro'yxatdan o'tish"}</h3>
+      <p class="text-sm text-inksoft mt-1.5">${isLogin? 'Hisobingizga kiring va davom eting.':"Bepul hisob yarating va boshlang."}</p>
+      <form id="auth-form" class="mt-6 space-y-4">
+        ${!isLogin ? `
+        <label class="block">
+          <span class="text-sm font-medium mb-1.5 block">Ism-familiya</span>
+          <input name="ism" required type="text" placeholder="Ism Familiya" class="w-full border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40"/>
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium mb-1.5 block">Sinf</span>
+          <select name="sinf" class="w-full border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40">
+            ${GRADES.map(g=>`<option value="${g}" ${g===8?'selected':''}>${g}-sinf</option>`).join('')}
+          </select>
+        </label>` : ''}
+        <label class="block">
+          <span class="text-sm font-medium mb-1.5 block">Email</span>
+          <input name="email" required type="email" placeholder="email@misol.uz" class="w-full border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40"/>
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium mb-1.5 block">Parol</span>
+          <input name="parol" required type="password" placeholder="••••••••" minlength="4" class="w-full border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40"/>
+        </label>
+        <button class="btn btn-primary w-full py-3 mt-2">${isLogin?'Kirish':"Ro'yxatdan o'tish"}</button>
+      </form>
+      <p class="text-center text-sm text-inksoft mt-5">
+        ${isLogin? "Hisobingiz yo'qmi?" : "Hisobingiz bormi?"}
+        <button data-action="switch-auth" class="font-semibold text-[var(--indigo)]">${isLogin? "Ro'yxatdan o'ting":"Kiring"}</button>
+      </p>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   DASHBOARDLAR
+   ========================================================= */
+function MiniBar(vals, labels){
+  const max = Math.max(...vals, 1);
+  return `<div class="flex items-end gap-3 h-36 px-1">
+    ${vals.map((v,i)=>`
+    <div class="flex-1 flex flex-col items-center gap-2">
+      <div class="w-full rounded-t-lg grad-brand" style="height:${Math.max(6,(v/max)*100)}%"></div>
+      <span class="text-[10px] text-inksoft">${labels[i]}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+function RequireAuthNote(){
+  return `<section class="max-w-3xl mx-auto px-4 sm:px-6 py-24 text-center">
+    <span class="w-14 h-14 mx-auto rounded-2xl bg-linesoft flex items-center justify-center text-inksoft mb-4">${icon('user','w-6 h-6')}</span>
+    <h2 class="font-display font-bold text-2xl">O'quvchi paneliga kirish</h2>
+    <p class="text-inksoft mt-2">AI Ustoz, testlar va bilim xaritangizni ko'rish uchun hisobingizga kiring yoki bepul ro'yxatdan o'ting.</p>
+    <div class="flex justify-center gap-3 mt-6">
+      <button data-action="open-auth" data-mode="login" class="btn btn-ghost px-5 py-2.5">Kirish</button>
+      <button data-action="open-auth" data-mode="register" class="btn btn-primary px-5 py-2.5">Ro'yxatdan o'tish</button>
+    </div>
+  </section>`;
+}
+
+function TeacherDashboard(){
+  if (!STATE.user) return RequireAuthNote();
+  const generated = STATE.generated;
+  const savedCount = STATE.saved.length;
+  const results = STATE.results;
+  const weekLabels = ["Du","Se","Cho","Pa","Ju","Sha","Ya"];
+  const weekVals = weekLabels.map((_,i)=> 1 + Math.floor(seedRand(i*31)*8));
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="flex items-center gap-4 mb-8">
+      <span class="w-14 h-14 rounded-2xl grad-brand text-white flex items-center justify-center font-display font-bold text-xl">${STATE.user.ism.slice(0,1)}</span>
+      <div>
+        <h1 class="font-display text-2xl font-bold">Assalomu alaykum, ${STATE.user.ism}!</h1>
+        <p class="text-inksoft text-sm">O'qituvchi kabineti</p>
+      </div>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      ${[["Yaratilgan materiallar",generated.length,'spark'],["Saqlangan materiallar",savedCount,'bookmark'],["Test natijalari",results.length,'tasks'],["Faollik (hafta)",weekVals.reduce((a,b)=>a+b,0),'chart']].map(c=>`
+      <div class="card p-5">
+        <span class="w-9 h-9 rounded-lg bg-indigo2-50 text-[var(--indigo)] flex items-center justify-center mb-3">${icon(c[2],'w-5 h-5')}</span>
+        <div class="font-display text-2xl font-bold">${c[1]}</div>
+        <div class="text-xs text-inksoft mt-1">${c[0]}</div>
+      </div>`).join('')}
+    </div>
+    <div class="grid lg:grid-cols-[1.3fr_1fr] gap-6">
+      <div class="card p-6">
+        <h3 class="font-display font-semibold mb-4">Haftalik faollik</h3>
+        ${MiniBar(weekVals, weekLabels)}
+      </div>
+      <div class="card p-6">
+        <h3 class="font-display font-semibold mb-4">So'nggi yaratilgan materiallar</h3>
+        ${generated.length ? `<div class="space-y-3">${generated.slice(0,5).map(g=>`
+          <div class="flex items-center justify-between text-sm">
+            <div class="min-w-0"><p class="font-medium truncate">${g.mavzu}</p><p class="text-xs text-inksoft">${g.turi} • ${g.fan}</p></div>
+            <span class="text-xs text-inksoft shrink-0 ml-2">${g.savollar.length} savol</span>
+          </div>`).join('')}</div>` : `<p class="text-sm text-inksoft">Hali material yaratilmagan. <a href="#/ai-generator" class="text-[var(--indigo)] font-semibold">AI Generatorni sinab ko'ring</a>.</p>`}
+      </div>
+    </div>
+    <div class="card p-6 mt-6">
+      <h3 class="font-display font-semibold mb-4">Saqlangan materiallar</h3>
+      ${savedCount ? `<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">${STATE.saved.map(id=>{
+        const l = LESSONS.find(x=>x.id===id); const b = BOOKS.find(x=>x.id===id);
+        if (l) return LessonCard(l); if (b) return BookCard(b); return '';
+      }).join('')}</div>` : `<p class="text-sm text-inksoft">Hozircha saqlangan material yo'q.</p>`}
+    </div>
+  </section>`;
+}
+
+function StudentDashboard(){
+  if (!STATE.user) return RequireAuthNote();
+  const results = STATE.results;
+  const badges = [
+    {name:"Birinchi test", got: results.length>=1, ic:'🏆'},
+    {name:"7 kunlik faollik", got: results.length>=3, ic:'🔥'},
+    {name:"100 ball", got: results.reduce((a,r)=>a+r.score,0)>=100, ic:'⭐'},
+    {name:"10 ta test", got: results.length>=10, ic:'🎯'},
+  ];
+  return `
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="flex items-center gap-4 mb-8">
+      <span class="w-14 h-14 rounded-2xl grad-brand text-white flex items-center justify-center font-display font-bold text-xl">${STATE.user.ism.slice(0,1)}</span>
+      <div>
+        <h1 class="font-display text-2xl font-bold">Salom, ${STATE.user.ism}!</h1>
+        <p class="text-inksoft text-sm">O'quvchi kabineti</p>
+      </div>
+    </div>
+    <div class="grid lg:grid-cols-[1fr_1.2fr] gap-6 mb-6">
+      <div class="card p-6">
+        <h3 class="font-display font-semibold mb-4">Yutuqlar</h3>
+        <div class="grid grid-cols-2 gap-3">
+          ${badges.map(b=>`<div class="rounded-xl border border-line p-4 text-center ${b.got?'':'opacity-40'}">
+            <div class="text-2xl mb-1">${b.ic}</div>
+            <div class="text-xs font-medium">${b.name}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="card p-6">
+        <h3 class="font-display font-semibold mb-4">Test natijalari</h3>
+        ${results.length ? `<div class="space-y-3">${results.slice(0,6).map(r=>`
+          <div class="flex items-center justify-between text-sm border-b border-line last:border-0 pb-3 last:pb-0">
+            <div><p class="font-medium">${r.mavzu}</p><p class="text-xs text-inksoft">${r.sana}</p></div>
+            <span class="font-display font-bold ${r.foiz>=60?'text-emerald-500':'text-red-500'}">${r.foiz}%</span>
+          </div>`).join('')}</div>` : `<p class="text-sm text-inksoft">Hali test topshirmagansiz. <a href="#/darslar" class="text-[var(--indigo)] font-semibold">Darslarni ko'ring</a>.</p>`}
+      </div>
+    </div>
+    <div class="card p-6">
+      <h3 class="font-display font-semibold mb-4">Mening darslarim</h3>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">${LESSONS.slice(0,3).map(LessonCard).join('')}</div>
+    </div>
+  </section>`;
+}
+
+/* =========================================================
+   DARS / TEST MODALI
+   ========================================================= */
+function LessonModal(lessonId){
+  const l = LESSONS.find(x=>x.id===lessonId);
+  if (!l) return '';
+  return `
+  <div class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6" data-action="close-modal-bg">
+    <div class="bg-surface rounded-3xl max-w-lg w-full p-7 sm:p-8 relative fade-up">
+      <button data-action="close-modal" class="absolute right-5 top-5 w-9 h-9 rounded-full hover:bg-linesoft flex items-center justify-center"><span class="w-4 h-4">${ICONS.close}</span></button>
+      <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-indigo2-50 text-[var(--indigo)]">${l.fan} • ${l.sinf}-sinf</span>
+      <h3 class="font-display font-bold text-2xl mt-3">${l.mavzu}</h3>
+      <div class="flex items-center gap-4 mt-3 text-sm text-inksoft">
+        <span class="flex items-center gap-1.5">${icon('clock','w-4 h-4')} ${l.davomiylik} daqiqa</span>
+        <span class="flex items-center gap-1.5">${icon('tasks','w-4 h-4')} ${l.topshiriqlar} topshiriq</span>
+      </div>
+      <p class="text-sm text-inksoft mt-5 leading-relaxed">Ushbu darsda "${l.mavzu}" mavzusi ${l.sinf}-sinf o'quvchilari uchun bosqichma-bosqich tushuntiriladi. Dars so'ngida bilimni mustahkamlash uchun qisqa test taklif etiladi.</p>
+      <div class="flex gap-2.5 mt-7">
+        <button data-action="start-test" data-id="${l.id}" class="btn btn-primary flex-1 py-3">Testni boshlash</button>
+        <button data-action="toggle-save" data-id="${l.id}" data-kind="lesson" class="btn btn-ghost px-4 py-3">${icon('bookmark','w-4 h-4')}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+let activeTest = null; // {lesson, qs, idx, answers, score}
+function buildTestQuestions(lesson){
+  const qs = [];
+  for(let i=1;i<=8;i++){
+    const q = genQuestion(lesson.fan, lesson.mavzu, "Test", "O'rta", i);
+    if (!q.variantlar){
+      q.variantlar = [lesson.mavzu, "Noto'g'ri variant A", "Noto'g'ri variant B", "Noto'g'ri variant C"].sort(()=>0.5-seedRand(i));
+      q.javob = lesson.mavzu;
+    }
+    if (!q.javob) q.javob = q.variantlar[0];
+    qs.push(q);
+  }
+  return qs;
+}
+
+function TestModal(){
+  if (!activeTest) return '';
+  const {lesson, qs, idx} = activeTest;
+  if (idx>=qs.length) return TestResultModal();
+  const q = qs[idx];
+  return `
+  <div class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6" data-action="close-modal-bg">
+    <div class="bg-surface rounded-3xl max-w-lg w-full p-7 sm:p-8 relative fade-up">
+      <button data-action="close-modal" class="absolute right-5 top-5 w-9 h-9 rounded-full hover:bg-linesoft flex items-center justify-center"><span class="w-4 h-4">${ICONS.close}</span></button>
+      <div class="flex items-center justify-between mb-5">
+        <span class="text-sm font-semibold text-inksoft">Savol ${idx+1} / ${qs.length}</span>
+        <span class="text-sm font-semibold text-[var(--indigo)]">${lesson.mavzu}</span>
+      </div>
+      <div class="h-1.5 rounded-full bg-linesoft mb-6 overflow-hidden"><div class="h-full grad-brand" style="width:${(idx/qs.length)*100}%"></div></div>
+      <p class="font-display font-semibold text-lg leading-snug">${q.savol}</p>
+      <div class="grid gap-2.5 mt-6">
+        ${q.variantlar.map(v=>`<button data-action="answer-test" data-val="${String(v).replace(/"/g,'&quot;')}" class="chip text-left px-4 py-3">${v}</button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+function TestResultModal(){
+  const {lesson, qs, score} = activeTest;
+  const foiz = Math.round((score/qs.length)*100);
+  return `
+  <div class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6" data-action="close-modal-bg">
+    <div class="bg-surface rounded-3xl max-w-md w-full p-8 relative fade-up text-center">
+      <button data-action="close-modal" class="absolute right-5 top-5 w-9 h-9 rounded-full hover:bg-linesoft flex items-center justify-center"><span class="w-4 h-4">${ICONS.close}</span></button>
+      <span class="w-16 h-16 rounded-full grad-brand text-white flex items-center justify-center mx-auto mb-4">${icon('trophy','w-8 h-8')}</span>
+      <h3 class="font-display font-bold text-2xl">Test yakunlandi!</h3>
+      <p class="text-inksoft mt-1.5">${lesson.mavzu} — ${lesson.fan}</p>
+      <div class="grid grid-cols-3 gap-3 mt-6">
+        <div class="card p-4"><div class="font-display text-xl font-bold">${foiz}%</div><div class="text-[11px] text-inksoft mt-0.5">Natija</div></div>
+        <div class="card p-4"><div class="font-display text-xl font-bold text-emerald-500">${score}</div><div class="text-[11px] text-inksoft mt-0.5">To'g'ri</div></div>
+        <div class="card p-4"><div class="font-display text-xl font-bold text-red-500">${qs.length-score}</div><div class="text-[11px] text-inksoft mt-0.5">Xato</div></div>
+      </div>
+      <div class="flex gap-2.5 mt-7">
+        <button data-action="retry-test" class="btn btn-ghost flex-1 py-3">${icon('refresh','w-4 h-4')} Qayta ishlash</button>
+        <button data-action="close-modal" class="btn btn-primary flex-1 py-3">Yopish</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   STUDENT PANEL — qobiq (sidebar + kontent)
+   ========================================================= */
+const PANEL_NAV = [
+  {label:"Boshqaruv paneli", route:"#/panel",   ic:'chart'},
+  {label:"AI Ustoz",         route:"#/ustoz",   ic:'spark'},
+  {label:"Testlar",          route:"#/testlar", ic:'tasks'},
+  {label:"Tezkor quiz",      route:"#/quiz",    ic:'bolt'},
+  {label:"Natijalar tahlili",route:"#/tahlil",  ic:'search'},
+  {label:"Mening rivojim",   route:"#/rivoj",   ic:'trophy'},
+  {label:"Reyting",          route:"#/reyting", ic:'chart'},
+];
+
+function PanelShell(kontent){
+  const xp = STATE.xp, lvl = levelOf(xp), prog = levelProgress(xp);
+  const links = PANEL_NAV.map(l=>{
+    const faol = STATE.route===l.route;
+    return `<a href="${l.route}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${faol?'bg-[var(--indigo)] text-white':'text-inksoft hover:bg-linesoft hover:text-ink'}">
+      <span class="w-5 h-5 shrink-0">${ICONS[l.ic]}</span>${l.label}</a>`;
+  }).join('');
+
+  return `
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid lg:grid-cols-[250px_1fr] gap-7">
+    <aside class="lg:sticky lg:top-24 lg:self-start space-y-4">
+      <div class="card p-5">
+        <div class="flex items-center gap-3">
+          <span class="w-11 h-11 rounded-xl grad-brand text-white flex items-center justify-center font-display font-bold">${escapeHtml((STATE.user&&STATE.user.ism||'T').slice(0,1))}</span>
+          <div class="min-w-0">
+            <div class="font-semibold text-sm truncate">${escapeHtml(STATE.user&&STATE.user.ism||"O'quvchi")}</div>
+            <div class="text-xs text-inksoft">O'quvchi • Level ${lvl}</div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <div class="flex justify-between text-[11px] text-inksoft mb-1.5"><span>${xp} XP</span><span>${LEVELS_XP-prog} XP qoldi</span></div>
+          <div class="h-2 rounded-full bg-linesoft overflow-hidden"><div class="h-full grad-brand rounded-full" style="width:${prog}%"></div></div>
+        </div>
+      </div>
+      <nav class="card p-3 space-y-1">${links}</nav>
+    </aside>
+    <main class="min-w-0">${kontent}</main>
+  </div>`;
+}
+
+function PanelDashboard(){
+  const testlar = STATE.results.length;
+  const conceptKeys = Object.keys(CONCEPTS);
+  const ozlashtirilgan = conceptKeys.filter(c=>masteryInfo(c).ozlashtirilgan);
+  const zaif = conceptKeys
+    .filter(c=>{ const i=masteryInfo(c); return i.jami>0 && i.aniqlik<60; })
+    .sort((a,b)=>masteryInfo(a).aniqlik - masteryInfo(b).aniqlik);
+  const ortacha = STATE.results.length
+    ? Math.round(STATE.results.reduce((a,r)=>a+r.foiz,0)/STATE.results.length) : 0;
+
+  return `
+  <div class="mb-7">
+    <h1 class="font-display text-2xl sm:text-3xl font-bold">Assalomu alaykum, ${escapeHtml((STATE.user&&STATE.user.ism||"O'quvchi").split(' ')[0])}!</h1>
+    <p class="text-inksoft mt-1.5">${testlar ? "Bugun qaysi mavzuni mustahkamlaymiz?" : "Boshlash uchun birinchi testni ishlang — X-Edu bilim xaritangizni shakllantiradi."}</p>
+  </div>
+
+  <div class="grid sm:grid-cols-4 gap-4 mb-6">
+    ${[["Yakunlangan testlar",testlar,'tasks'],["O'rtacha natija",ortacha+"%",'chart'],["O'zlashtirilgan mavzular",ozlashtirilgan.length+" / "+conceptKeys.length,'book'],["Jami XP",STATE.xp,'star']].map(c=>`
+      <div class="card p-5">
+        <span class="w-9 h-9 rounded-lg bg-indigo2-50 text-[var(--indigo)] flex items-center justify-center mb-3">${icon(c[2],'w-5 h-5')}</span>
+        <div class="font-display text-2xl font-bold">${c[1]}</div>
+        <div class="text-xs text-inksoft mt-1">${c[0]}</div>
+      </div>`).join('')}
+  </div>
+
+  ${zaif.length ? `
+  <div class="card p-6 mb-6 border-2 border-[var(--violet)]/30">
+    <div class="flex items-start gap-3">
+      <span class="w-10 h-10 rounded-xl bg-violet2-50/10 border border-[var(--violet)]/20 text-[var(--violet)] flex items-center justify-center shrink-0">${icon('spark','w-5 h-5')}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-semibold text-[var(--violet)] uppercase tracking-wide">Sizga tavsiya</div>
+        <h2 class="font-display font-bold text-lg mt-1">${CONCEPTS[zaif[0]].nom}</h2>
+        <p class="text-sm text-inksoft mt-1.5 leading-relaxed">Bu mavzu bo'yicha natijangiz past. AI Ustoz bilan mustahkamlang.</p>
+        <button data-action="ustoz-goto" data-c="${zaif[0]}" class="btn btn-violet px-5 py-2.5 mt-4 text-sm">${icon('spark','w-4 h-4')} Hozir o'rganish</button>
+      </div>
+    </div>
+  </div>` : ''}
+
+  <div class="grid lg:grid-cols-2 gap-6 mb-6">
+    <div class="card p-6">
+      <h3 class="font-display font-semibold mb-4">Bilim xaritasi</h3>
+      ${BilimXaritasi()}
+    </div>
+    <div class="card p-6">
+      <h3 class="font-display font-semibold mb-4">So'nggi natijalar</h3>
+      ${STATE.results.length ? `<div class="space-y-3">${STATE.results.slice(0,6).map(r=>`
+        <div class="flex items-center justify-between text-sm border-b border-line last:border-0 pb-3 last:pb-0">
+          <div class="min-w-0"><p class="font-medium truncate">${escapeHtml(r.mavzu)}</p><p class="text-xs text-inksoft">${r.sana}</p></div>
+          <span class="font-display font-bold shrink-0 ml-2 ${r.foiz>=60?'text-emerald-500':'text-red-500'}">${r.foiz}%</span>
+        </div>`).join('')}</div>`
+        : `<p class="text-sm text-inksoft">Hali test ishlamagansiz. <a href="#/testlar" class="text-[var(--indigo)] font-semibold">Testlarni ko'ring</a>.</p>`}
+    </div>
+  </div>
+
+  <div class="grid sm:grid-cols-3 gap-4">
+    ${[["Test ishlash","Bilimingizni tekshiring","#/testlar",'tasks'],
+       ["Tezkor quiz","Vaqtga qarshi o'yin","#/quiz",'bolt'],
+       ["AI Ustoz","Mavzuni tushunib oling","#/ustoz",'spark']].map(c=>`
+      <a href="${c[2]}" class="card card-hover p-5 flex flex-col">
+        <span class="w-10 h-10 rounded-xl bg-indigo2-50 text-[var(--indigo)] flex items-center justify-center mb-3">${icon(c[3],'w-5 h-5')}</span>
+        <div class="font-display font-semibold">${c[0]}</div>
+        <p class="text-xs text-inksoft mt-1 flex-1">${c[1]}</p>
+        <span class="text-sm font-semibold text-[var(--indigo)] mt-3 inline-flex items-center gap-1.5">Ochish ${icon('arrowR','w-4 h-4')}</span>
+      </a>`).join('')}
+  </div>`;
+}
+
+/* Mavzuni "o'zlashtirilgan" deyish uchun kamida shuncha savol ishlangan bo'lishi kerak.
+   Aks holda bitta to'g'ri javob 100% ko'rsatib, xato xulosa berardi. */
+const MASTERY_MIN = 3;
+
+function masteryInfo(c){
+  const m = STATE.mastery[c];
+  const jami = m ? m.jami : 0;
+  const togri = m ? m.togri : 0;
+  const aniqlik = jami ? Math.round((togri/jami)*100) : 0;
+  // Chiziq "o'zlashtirishga qancha qolgani"ni ko'rsatadi: bitta to'g'ri javob
+  // to'la chiziq bermaydi, chunki maxrajda kamida MASTERY_MIN turadi.
+  const daraja = jami ? Math.round((togri/Math.max(jami, MASTERY_MIN))*100) : 0;
+
+  let holat, rang, yorliq;
+  if (!jami){
+    holat='ishlanmagan'; rang='bg-line';  yorliq="Ishlanmagan";
+  } else if (jami < MASTERY_MIN){
+    holat='sinovda';     rang='bg-amber-400'; yorliq=`Dastlabki baho`;
+  } else if (aniqlik >= 80){
+    holat='ozlashtirilgan'; rang='bg-emerald-400'; yorliq="O'zlashtirilgan";
+  } else if (aniqlik >= 50){
+    holat='mashq';       rang='grad-brand'; yorliq="Mashq kerak";
+  } else {
+    holat='takrorlash';  rang='bg-red-400'; yorliq="Takrorlash kerak";
+  }
+  return { jami, togri, aniqlik, daraja, holat, rang, yorliq,
+           ozlashtirilgan: holat==='ozlashtirilgan' };
+}
+
+function BilimXaritasi(){
+  const ishlangan = Object.keys(CONCEPTS).filter(c=>masteryInfo(c).jami>0).length;
+  return `
+    ${ishlangan===0 ? `<p class="text-sm text-inksoft mb-4">Hali birorta savol ishlanmagan. Test yoki quiz ishlasangiz, har bir mavzu bo'yicha darajangiz shu yerda paydo bo'ladi.</p>` : ''}
+    <div class="space-y-3.5">
+    ${Object.keys(CONCEPTS).map(c=>{
+      const i = masteryInfo(c);
+      return `<div>
+        <div class="flex justify-between items-center gap-2 text-sm mb-1.5">
+          <span class="${i.jami?'':'text-inksoft'}">${CONCEPTS[c].nom}</span>
+          <span class="flex items-center gap-2 shrink-0">
+            ${i.jami ? `<span class="text-xs text-inksoft">${i.togri}/${i.jami} savol</span>` : ''}
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+              i.holat==='ozlashtirilgan' ? 'bg-emerald-50 text-emerald-600' :
+              i.holat==='takrorlash'     ? 'bg-red-50 text-red-600' :
+              i.holat==='sinovda'        ? 'bg-amber-50 text-amber-600' :
+              i.holat==='mashq'          ? 'bg-indigo2-50 text-[var(--indigo)]' :
+                                           'bg-linesoft text-inksoft'}">${i.yorliq}</span>
+          </span>
+        </div>
+        <div class="h-2 rounded-full bg-linesoft overflow-hidden">
+          <div class="h-full rounded-full ${i.rang} transition-all" style="width:${i.daraja}%"></div>
+        </div>
+      </div>`;
+    }).join('')}
+    </div>
+    ${ishlangan ? `<p class="text-[11px] text-inksoft mt-4 leading-relaxed">Chiziq — o'zlashtirish darajasi. Mavzu "o'zlashtirilgan" deb belgilanishi uchun kamida ${MASTERY_MIN} ta savol ishlanib, natija 80% dan yuqori bo'lishi kerak.</p>` : ''}`;
+}
+
+/* =========================================================
+   TESTLAR RO'YXATI
+   ========================================================= */
+function TestlarPage(){
+  return `
+  <div class="mb-7">
+    <h1 class="font-display text-2xl sm:text-3xl font-bold">Testlar</h1>
+    <p class="text-inksoft mt-1.5">Har bir savol aniq mavzuga bog'langan — shuning uchun natija oddiy ball emas, to'liq tahlil bo'ladi.</p>
+  </div>
+  <div class="grid sm:grid-cols-2 gap-5">
+    ${TESTS.map(t=>{
+      const savollar = testSavollari(t);
+      const oldingi = STATE.results.find(r=>r.testId===t.id);
+      const rang = t.daraja==='Oson'?'emerald':t.daraja==="O'rta"?'indigo':'red';
+      return `
+      <div class="card card-hover p-6 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full ${rang==='emerald'?'bg-emerald-50 text-emerald-600':rang==='indigo'?'bg-indigo2-50 text-[var(--indigo)]':'bg-red-50 text-red-600'}">${t.daraja}</span>
+          ${oldingi ? `<span class="text-[11px] font-semibold text-inksoft">Oxirgi: <b class="${oldingi.foiz>=60?'text-emerald-500':'text-red-500'}">${oldingi.foiz}%</b></span>` : ''}
+        </div>
+        <h3 class="font-display font-semibold text-lg">${t.nom}</h3>
+        <p class="text-sm text-inksoft mt-2 leading-relaxed flex-1">${t.tavsif}</p>
+        <div class="flex items-center gap-4 mt-4 text-xs text-inksoft">
+          <span class="flex items-center gap-1.5">${icon('tasks','w-3.5 h-3.5')} ${savollar.length} savol</span>
+          <span class="flex items-center gap-1.5">${icon('clock','w-3.5 h-3.5')} ${t.vaqt}</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mt-3">
+          ${t.concepts.map(c=>`<span class="text-[10px] px-2 py-0.5 rounded-full bg-linesoft text-inksoft">${CONCEPTS[c].nom}</span>`).join('')}
+        </div>
+        <button data-action="test-start" data-t="${t.id}" class="btn btn-primary w-full py-2.5 mt-5 text-sm">${oldingi?'Qayta ishlash':'Boshlash'}</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* =========================================================
+   TEZKOR QUIZ — o'yin shaklidagi
+   ========================================================= */
+let quizState = null;
+let quizTimer = null;
+
+function boshlaQuiz(){
+  const savollar = [...QUESTIONS].sort(()=>Math.random()-0.5).slice(0,8);
+  quizState = { savollar, idx:0, ball:0, streak:0, engYaxshiStreak:0, togri:0, vaqt:12, tugadi:false };
+}
+
+function QuizPage(){
+  if (!quizState){
+    return `
+    <div class="max-w-xl mx-auto text-center py-12">
+      <span class="w-16 h-16 mx-auto rounded-2xl grad-brand text-white flex items-center justify-center mb-5">${icon('bolt','w-7 h-7')}</span>
+      <h1 class="font-display text-2xl sm:text-3xl font-bold">Tezkor quiz</h1>
+      <p class="text-inksoft mt-3 leading-relaxed">8 ta savol, har biriga <b class="text-ink">12 soniya</b>. Ketma-ket to'g'ri javoblar uchun <b class="text-ink">streak bonusi</b> beriladi. To'plangan ball XP ga aylanadi.</p>
+      <div class="grid grid-cols-3 gap-3 mt-7 text-sm">
+        <div class="card p-4"><div class="font-display font-bold text-lg">+10</div><div class="text-[11px] text-inksoft mt-0.5">to'g'ri javob</div></div>
+        <div class="card p-4"><div class="font-display font-bold text-lg">+5</div><div class="text-[11px] text-inksoft mt-0.5">streak bonusi</div></div>
+        <div class="card p-4"><div class="font-display font-bold text-lg">12s</div><div class="text-[11px] text-inksoft mt-0.5">har savolga</div></div>
+      </div>
+      <button data-action="quiz-start" class="btn btn-violet px-7 py-3.5 mt-7">${icon('bolt','w-4 h-4')} Boshlash</button>
+    </div>`;
+  }
+  if (quizState.tugadi) return QuizNatija();
+
+  const q = quizState.savollar[quizState.idx];
+  return `
+  <div class="max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-4">
+      <span class="text-sm font-semibold text-inksoft">Savol ${quizState.idx+1} / ${quizState.savollar.length}</span>
+      <div class="flex items-center gap-3">
+        ${quizState.streak>1 ? `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600">🔥 ${quizState.streak} streak</span>`:''}
+        <span class="text-sm font-bold text-[var(--indigo)]">${quizState.ball} ball</span>
+      </div>
+    </div>
+    <div class="h-2 rounded-full bg-linesoft mb-6 overflow-hidden">
+      <div id="quiz-bar" class="h-full grad-brand rounded-full" style="width:100%; transition: width 1s linear;"></div>
+    </div>
+    <div class="card p-6 sm:p-8">
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-indigo2-50 text-[var(--indigo)]">${CONCEPTS[q.concept].nom}</span>
+        <span id="quiz-sec" class="font-display font-bold text-xl text-[var(--violet)]">${quizState.vaqt}</span>
+      </div>
+      <p class="font-display font-semibold text-lg leading-snug">${q.savol}</p>
+      <div class="grid sm:grid-cols-2 gap-2.5 mt-6">
+        ${q.variantlar.map(v=>`<button data-action="quiz-answer" data-val="${String(v).replace(/"/g,'&quot;')}" class="chip text-left px-4 py-3">${v}</button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function QuizNatija(){
+  const q = quizState;
+  const foiz = Math.round((q.togri/q.savollar.length)*100);
+  return `
+  <div class="max-w-lg mx-auto text-center py-8">
+    <span class="w-20 h-20 mx-auto rounded-full grad-brand text-white flex items-center justify-center mb-5">${icon('trophy','w-9 h-9')}</span>
+    <h1 class="font-display text-3xl font-bold">Quiz yakunlandi!</h1>
+    <p class="text-inksoft mt-2">${q.ball} ball to'pladingiz va <b class="text-ink">+${q.ball} XP</b> oldingiz</p>
+    <div class="grid grid-cols-3 gap-3 mt-7">
+      <div class="card p-4"><div class="font-display text-xl font-bold">${foiz}%</div><div class="text-[11px] text-inksoft mt-0.5">Aniqlik</div></div>
+      <div class="card p-4"><div class="font-display text-xl font-bold text-emerald-500">${q.togri}</div><div class="text-[11px] text-inksoft mt-0.5">To'g'ri</div></div>
+      <div class="card p-4"><div class="font-display text-xl font-bold text-amber-500">🔥 ${q.engYaxshiStreak}</div><div class="text-[11px] text-inksoft mt-0.5">Eng uzun streak</div></div>
+    </div>
+    <div class="flex gap-3 mt-8">
+      <a href="#/rivoj" class="btn btn-ghost flex-1 py-3">Rivojim</a>
+      <button data-action="quiz-start" class="btn btn-violet flex-1 py-3">${icon('refresh','w-4 h-4')} Yana</button>
+    </div>
+  </div>`;
+}
+
+function quizTimerBoshla(){
+  clearInterval(quizTimer);
+  if (!quizState || quizState.tugadi) return;
+  quizState.vaqt = 12;
+  const bar = document.getElementById('quiz-bar');
+  if (bar) requestAnimationFrame(()=>{ bar.style.transition='width 12s linear'; bar.style.width='0%'; });
+  quizTimer = setInterval(()=>{
+    if (!quizState || quizState.tugadi){ clearInterval(quizTimer); return; }
+    quizState.vaqt--;
+    const el = document.getElementById('quiz-sec');
+    if (el) el.textContent = quizState.vaqt;
+    if (quizState.vaqt<=0){ clearInterval(quizTimer); quizJavob(null); }
+  }, 1000);
+}
+
+function quizJavob(val){
+  clearInterval(quizTimer);
+  if (!quizState || quizState.tugadi) return;
+  const q = quizState.savollar[quizState.idx];
+  const togri = val===q.javob;
+
+  if (togri){
+    quizState.togri++;
+    quizState.streak++;
+    quizState.engYaxshiStreak = Math.max(quizState.engYaxshiStreak, quizState.streak);
+    quizState.ball += 10 + (quizState.streak>1 ? 5 : 0);
+    toast(quizState.streak>1 ? `To'g'ri! +${10+5} (🔥 ${quizState.streak})` : "To'g'ri! +10");
+  } else {
+    quizState.streak = 0;
+    toast(val===null ? `Vaqt tugadi. Javob: ${q.javob}` : `Noto'g'ri. Javob: ${q.javob}`);
+  }
+
+  const m = STATE.mastery[q.concept] || {jami:0, togri:0};
+  m.jami++; if (togri) m.togri++;
+  STATE.mastery[q.concept] = m;
+  if (togri) kunlikOshir('togri');
+
+  quizState.idx++;
+  if (quizState.idx >= quizState.savollar.length){
+    quizState.tugadi = true;
+    STATE.xp += quizState.ball;
+    kunlikOshir('quiz');
+    STATE.results.unshift({ testId:'quiz', mavzu:"Tezkor quiz", foiz:Math.round((quizState.togri/quizState.savollar.length)*100),
+                            score:quizState.togri, sana:new Date().toLocaleDateString('uz-UZ') });
+    persist();
+  }
+  render();
+}
+
+/* =========================================================
+   AI USTOZ
+   ========================================================= */
+let ustozYuklanmoqda = false;
+
+function yangiChat(conceptKey){
+  const chat = { id:'c'+Date.now()+Math.floor(Math.random()*1000),
+                 concept: conceptKey || Object.keys(CONCEPTS)[0],
+                 xabarlar: [], vaqt: Date.now() };
+  STATE.chats.unshift(chat);
+  STATE.chats = STATE.chats.slice(0,20);
+  STATE.activeChat = chat.id;
+  persist();
+  return chat;
+}
+function joriyChat(){
+  let c = STATE.chats.find(x=>x.id===STATE.activeChat);
+  if (!c) c = STATE.chats[0] || yangiChat();
+  STATE.activeChat = c.id;
+  if (!CONCEPTS[c.concept]) c.concept = Object.keys(CONCEPTS)[0];
+  return c;
+}
+function chatNomi(c){
+  const birinchi = (c.xabarlar||[]).find(m=>m.rol==='user');
+  if (birinchi && birinchi.matn) return birinchi.matn.length>26 ? birinchi.matn.slice(0,26)+'…' : birinchi.matn;
+  return CONCEPTS[c.concept] ? CONCEPTS[c.concept].nom : 'Yangi suhbat';
+}
+
+function UstozPage(){
+  const chat = joriyChat();
+  return `
+  <div>
+    <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+      <div>
+        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--violet)] bg-violet2-50/10 px-3 py-1 rounded-full border border-[var(--violet)]/20">${icon('spark','w-3.5 h-3.5')} AI Ustoz</span>
+        <h1 class="font-display text-2xl sm:text-3xl font-bold mt-3">Mavzuni tushunib oling</h1>
+      </div>
+      <button data-action="chat-new" class="btn btn-primary px-4 py-2.5 text-sm shrink-0">+ Yangi suhbat</button>
+    </div>
+
+    <div class="card px-4 py-3 mb-5 flex items-start gap-2.5 bg-linesoft border-none">
+      <span class="w-4 h-4 text-[var(--indigo)] shrink-0 mt-0.5">${ICONS.check}</span>
+      <p class="text-xs text-inksoft leading-relaxed">AI Ustoz sizning bilim xaritangizni, zaif mavzularingizni va oxirgi test tahlilingizni ko'rib turibdi — javoblar shunga moslab beriladi.</p>
+    </div>
+
+    ${STATE.chats.length>1 ? `
+    <div class="mb-5">
+      <div class="text-xs font-semibold text-inksoft mb-2">Suhbatlarim</div>
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        ${STATE.chats.map(c=>`
+          <button data-action="chat-open" data-id="${c.id}" class="chip shrink-0 flex items-center gap-2 ${c.id===chat.id?'active':''}">
+            ${escapeHtml(chatNomi(c))}
+            ${c.xabarlar.length?`<span class="text-[10px] ${c.id===chat.id?'text-white/70':'text-inksoft'}">${c.xabarlar.filter(m=>m.rol==='user').length}</span>`:''}
+          </button>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="mb-5">
+      <div class="text-xs font-semibold text-inksoft mb-2">Mavzu</div>
+      <div class="flex flex-wrap gap-2">
+        ${Object.keys(CONCEPTS).map(k=>{
+          const i = masteryInfo(k);
+          return `<button data-action="ustoz-concept" data-c="${k}" class="chip ${chat.concept===k?'active':''}">
+            ${CONCEPTS[k].nom}
+            ${i.holat==='takrorlash'||i.holat==='mashq' ? `<span class="ml-1 ${chat.concept===k?'text-white/80':'text-red-500'}">•</span>` : ''}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="card p-6 sm:p-7">
+      <div id="ustoz-chat" class="space-y-4 min-h-[220px] max-h-[440px] overflow-y-auto">${UstozChat()}</div>
+      <form data-action="ustoz-send" class="flex gap-2 mt-6 pt-5 border-t border-line">
+        <input name="savol" autocomplete="off" placeholder="Savolingizni yozing yoki shunchaki 'Tushuntir' deng..." class="flex-1 border border-line rounded-xl px-4 py-2.5 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]/40"/>
+        <button class="btn btn-violet px-5">So'rash</button>
+      </form>
+    </div>
+  </div>`;
+}
+
+function UstozChat(){
+  const chat = joriyChat();
+  if (!chat.xabarlar.length && !ustozYuklanmoqda){
+    const i = masteryInfo(chat.concept);
+    return `<div class="text-center py-10">
+      <span class="w-12 h-12 mx-auto rounded-2xl grad-brand text-white flex items-center justify-center mb-3">${icon('spark','w-5 h-5')}</span>
+      <p class="text-sm text-inksoft">"${CONCEPTS[chat.concept].nom}" bo'yicha savolingizni yozing.</p>
+      ${i.jami ? `<p class="text-xs text-inksoft mt-1.5">Bu mavzuda sizning natijangiz: ${i.togri}/${i.jami} — ${i.yorliq}</p>` : ''}
+      <button data-action="ustoz-explain" class="btn btn-ghost px-5 py-2.5 mt-4 text-sm">Shu mavzuni tushuntir</button>
+    </div>`;
+  }
+  return chat.xabarlar.map(m=> m.rol==='user'
+    ? `<div class="flex justify-end"><div class="bg-[var(--indigo)] text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-sm max-w-[80%]">${escapeHtml(m.matn)}</div></div>`
+    : `<div class="flex gap-3">
+         <span class="w-8 h-8 rounded-lg grad-brand text-white flex items-center justify-center shrink-0">${icon('spark','w-4 h-4')}</span>
+         <div class="bg-linesoft rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed max-w-[85%] whitespace-pre-line">${escapeHtml(m.matn)}</div>
+       </div>`
+  ).join('') + (ustozYuklanmoqda ? `
+    <div class="flex gap-3">
+      <span class="w-8 h-8 rounded-lg grad-brand text-white flex items-center justify-center shrink-0 animate-pulse">${icon('spark','w-4 h-4')}</span>
+      <div class="bg-linesoft rounded-2xl rounded-tl-sm px-4 py-3 flex-1 max-w-[60%] space-y-2">
+        <div class="skel h-3 w-full"></div><div class="skel h-3 w-4/5"></div><div class="skel h-3 w-2/3"></div>
+      </div>
+    </div>` : '');
+}
+
+function refreshUstozChat(){
+  const el = document.getElementById('ustoz-chat');
+  if (el){ el.innerHTML = UstozChat(); el.scrollTop = el.scrollHeight; }
+}
+
+async function ustozSora(savol){
+  const chat = joriyChat();
+  const tarix = chat.xabarlar.slice();
+  chat.xabarlar.push({rol:'user', matn: savol});
+  kunlikOshir('ustoz');
+  ustozYuklanmoqda = true;
+  refreshUstozChat();
+  const javob = await aiUstoz(chat.concept, savol, tarix);
+  ustozYuklanmoqda = false;
+  chat.xabarlar.push({rol:'ai', matn: javob});
+  persist();
+  refreshUstozChat();
+  // suhbat nomi birinchi savoldan kelib chiqadi — ro'yxatni yangilaymiz
+  if (chat.xabarlar.filter(m=>m.rol==='user').length===1 && STATE.route==='#/ustoz') render();
+}
+
+/* =========================================================
+   TEST
+   ========================================================= */
+let joriyTest = null;   // {test, savollar, idx, javoblar, savolBoshlandi}
+let sonngiTahlil = null;
+
+function boshlaTest(testId){
+  const test = TESTS.find(t=>t.id===testId) || TESTS[TESTS.length-1];
+  joriyTest = { test, savollar: testSavollari(test), idx:0, javoblar:[], savolBoshlandi: Date.now() };
+}
+
+function TestPage(){
+  if (!joriyTest) return TestlarPage();
+  const {savollar, idx, test} = joriyTest;
+  if (idx >= savollar.length) return TahlilPage();
+  const q = savollar[idx];
+  return `
+  <div class="max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <div class="font-display font-semibold">${test.nom}</div>
+        <span class="text-sm text-inksoft">Savol ${idx+1} / ${savollar.length}</span>
+      </div>
+      <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-indigo2-50 text-[var(--indigo)]">${CONCEPTS[q.concept].nom}</span>
+    </div>
+    <div class="h-1.5 rounded-full bg-linesoft mb-7 overflow-hidden"><div class="h-full grad-brand transition-all" style="width:${(idx/savollar.length)*100}%"></div></div>
+    <div class="card p-6 sm:p-8">
+      <p class="font-display font-semibold text-lg leading-snug">${q.savol}</p>
+      <div class="grid gap-2.5 mt-6">
+        ${q.variantlar.map(v=>`<button data-action="test-answer" data-val="${String(v).replace(/"/g,'&quot;')}" class="chip text-left px-4 py-3">${v}</button>`).join('')}
+      </div>
+    </div>
+    <button data-action="test-cancel" class="text-sm text-inksoft hover:text-ink mt-5">← Testdan chiqish</button>
+  </div>`;
+}
+
+function javobBer(val){
+  const q = joriyTest.savollar[joriyTest.idx];
+  const togri = (val === q.javob);
+  joriyTest.javoblar.push({
+    concept: q.concept, togri, savol:q.savol, berilgan:val, togriJavob:q.javob, izoh:q.izoh,
+    vaqt: Date.now() - joriyTest.savolBoshlandi
+  });
+
+  const m = STATE.mastery[q.concept] || {jami:0, togri:0};
+  m.jami++; if (togri) m.togri++;
+  STATE.mastery[q.concept] = m;
+  if (togri){ STATE.xp += 10; kunlikOshir('togri'); }
+
+  joriyTest.idx++;
+  joriyTest.savolBoshlandi = Date.now();
+
+  if (joriyTest.idx >= joriyTest.savollar.length){
+    sonngiTahlil = tahlilQil(joriyTest.javoblar);
+    kunlikOshir('test');
+    const togriSoni = joriyTest.javoblar.filter(a=>a.togri).length;
+    const foiz = Math.round((togriSoni/joriyTest.javoblar.length)*100);
+    STATE.results = STATE.results.filter(r=>r.testId!==joriyTest.test.id);
+    STATE.results.unshift({ testId:joriyTest.test.id, mavzu:joriyTest.test.nom, foiz, score:togriSoni, sana:new Date().toLocaleDateString('uz-UZ') });
+    persist();
+    go('#/tahlil');
+    render();
+    return;
+  }
+  persist();
+  render();
+}
+
+/* =========================================================
+   TAHLIL — g'oyaning yuragi
+   ========================================================= */
+function TahlilPage(){
+  if (!sonngiTahlil || !joriyTest){
+    return `<div class="max-w-2xl mx-auto py-16 text-center">
+      <span class="w-14 h-14 mx-auto rounded-2xl bg-linesoft text-inksoft flex items-center justify-center mb-4">${icon('search','w-6 h-6')}</span>
+      <h1 class="font-display text-2xl font-bold">Hali tahlil qilinadigan test yo'q</h1>
+      <p class="text-inksoft mt-2">Tahlilni ko'rish uchun avval biror testni yakunlang.</p>
+      <a href="#/testlar" class="btn btn-primary px-6 py-3 mt-6 inline-flex">Testlarni ko'rish</a>
+    </div>`;
+  }
+  const t = sonngiTahlil;
+  const javoblar = joriyTest.javoblar;
+  const togriSoni = javoblar.filter(a=>a.togri).length;
+  const foiz = Math.round((togriSoni/javoblar.length)*100);
+  const xatolar = javoblar.filter(a=>!a.togri);
+
+  return `
+  <div class="max-w-3xl">
+    <div class="mb-7">
+      <h1 class="font-display text-2xl sm:text-3xl font-bold">Natija tahlili</h1>
+      <p class="text-inksoft mt-1.5">${escapeHtml(joriyTest.test.nom)} — X-Edu xatolaringizni tahlil qildi</p>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4 mb-8">
+      <div class="card p-5 text-center"><div class="font-display text-3xl font-bold">${foiz}%</div><div class="text-xs text-inksoft mt-1">Natija</div></div>
+      <div class="card p-5 text-center"><div class="font-display text-3xl font-bold text-emerald-500">${togriSoni}</div><div class="text-xs text-inksoft mt-1">To'g'ri</div></div>
+      <div class="card p-5 text-center"><div class="font-display text-3xl font-bold text-red-500">${javoblar.length-togriSoni}</div><div class="text-xs text-inksoft mt-1">Xato</div></div>
+    </div>
+
+    ${t.toliq ? `
+      <div class="card p-8 text-center mb-8">
+        <span class="w-14 h-14 mx-auto rounded-full grad-brand text-white flex items-center justify-center mb-4">${icon('trophy','w-7 h-7')}</span>
+        <h2 class="font-display font-bold text-xl">Barcha savollar to'g'ri!</h2>
+        <p class="text-inksoft mt-2">Bu mavzular to'liq o'zlashtirilgan. Keyingi bosqichga o'tishingiz mumkin.</p>
+      </div>` : `
+
+      <div class="card p-6 sm:p-7 mb-6 border-2 border-[var(--violet)]/30">
+        <div class="flex items-start gap-3">
+          <span class="w-10 h-10 rounded-xl bg-violet2-50/10 border border-[var(--violet)]/20 text-[var(--violet)] flex items-center justify-center shrink-0">${icon('spark','w-5 h-5')}</span>
+          <div class="min-w-0">
+            <div class="text-xs font-semibold text-[var(--violet)] uppercase tracking-wide">Xatoning sababi</div>
+            <h2 class="font-display font-bold text-xl mt-1">${t.sabab}</h2>
+            <p class="text-sm text-inksoft mt-2 leading-relaxed">${t.sababIzoh}</p>
+          </div>
+        </div>
+
+        ${t.ildiz !== t.asosiy ? `
+        <div class="mt-6 pt-5 border-t border-line">
+          <div class="text-xs font-semibold text-inksoft mb-3">Bog'liqlik zanjiri</div>
+          <div class="flex items-center gap-2 flex-wrap text-sm">
+            <span class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold border border-red-200">${CONCEPTS[t.ildiz].nom}</span>
+            <span class="text-inksoft">${icon('arrowR','w-4 h-4')}</span>
+            <span class="px-3 py-1.5 rounded-lg bg-linesoft text-inksoft">${CONCEPTS[t.asosiy].nom}</span>
+            <span class="text-xs text-inksoft ml-1">— ildiz chapda</span>
+          </div>
+        </div>` : ''}
+
+        <div class="mt-6 pt-5 border-t border-line flex flex-wrap items-center gap-3">
+          <div class="flex-1 min-w-[180px]">
+            <div class="text-xs font-semibold text-inksoft">Tavsiya etilgan mavzu</div>
+            <div class="font-display font-bold text-lg">${t.tavsiya}</div>
+          </div>
+          <button data-action="ustoz-goto" data-c="${t.tavsiyaKey}" class="btn btn-violet px-5 py-3">${icon('spark','w-4 h-4')} AI Ustoz bilan o'rganish</button>
+        </div>
+      </div>
+
+      <div class="card p-6 mb-6">
+        <h3 class="font-display font-semibold mb-4">Mavzular bo'yicha o'zlashtirish</h3>
+        <div class="space-y-3">
+          ${Object.keys(t.perConcept).map(c=>{
+            const s = t.perConcept[c];
+            const pct = Math.round(((s.jami-s.xato)/s.jami)*100);
+            return `<div>
+              <div class="flex justify-between text-sm mb-1.5">
+                <span class="${c===t.ildiz?'font-semibold text-red-500':''}">${CONCEPTS[c].nom}</span>
+                <span class="text-inksoft">${s.jami-s.xato}/${s.jami}</span>
+              </div>
+              <div class="h-2 rounded-full bg-linesoft overflow-hidden">
+                <div class="h-full rounded-full ${pct>=60?'grad-brand':'bg-red-400'}" style="width:${pct}%"></div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`}
+
+    ${xatolar.length ? `
+    <div class="card p-6 mb-6">
+      <h3 class="font-display font-semibold mb-4">Xato savollar tahlili</h3>
+      <div class="space-y-5">
+        ${xatolar.map(a=>`
+          <div class="border-b border-line last:border-0 pb-5 last:pb-0">
+            <p class="text-sm font-medium">${a.savol}</p>
+            <div class="flex flex-wrap gap-2 mt-2.5 text-xs">
+              <span class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600">Siz: ${a.berilgan ?? '—'}</span>
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600">To'g'ri: ${a.togriJavob}</span>
+              <span class="px-2.5 py-1 rounded-lg bg-linesoft text-inksoft">${CONCEPTS[a.concept].nom}</span>
+            </div>
+            <p class="text-xs text-inksoft mt-2.5 leading-relaxed">${a.izoh}</p>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="flex flex-wrap gap-3">
+      <a href="#/rivoj" class="btn btn-ghost px-5 py-3">${icon('chart','w-4 h-4')} Rivojimni ko'rish</a>
+      <a href="#/testlar" class="btn btn-ghost px-5 py-3">Boshqa test</a>
+      <button data-action="test-start" data-t="${joriyTest.test.id}" class="btn btn-primary px-5 py-3 ml-auto">${icon('refresh','w-4 h-4')} Qayta ishlash</button>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   MENING RIVOJIM
+   ========================================================= */
+/* ---------- KUNLIK VAZIFALAR KARTASI ---------- */
+function KunlikVazifalar(){
+  const k = kunlikHolat();
+  const tugagan = kunlikTugallangan();
+  return `
+  <div class="card p-6">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <h3 class="font-display font-semibold">Kunlik vazifalar</h3>
+      <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${tugagan===KUNLIK_VAZIFALAR.length?'bg-emerald-50 text-emerald-600':'bg-linesoft text-inksoft'}">
+        ${tugagan} / ${KUNLIK_VAZIFALAR.length} bajarildi
+      </span>
+    </div>
+    <div class="space-y-3">
+      ${KUNLIK_VAZIFALAR.map(v=>{
+        const hisob = Math.min(k.hisob[v.id]||0, v.maqsad);
+        const foiz = Math.round((hisob/v.maqsad)*100);
+        const tayyor = !!k.olingan[v.id];
+        return `
+        <div class="flex items-center gap-3">
+          <span class="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${tayyor?'bg-emerald-50':'bg-linesoft'}">${tayyor?'✔️':v.ic}</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-baseline gap-2">
+              <span class="text-sm font-medium ${tayyor?'text-inksoft line-through':''}">${v.nom}</span>
+              <span class="text-xs text-inksoft shrink-0">${hisob}/${v.maqsad} · +${v.xp} XP</span>
+            </div>
+            <div class="h-1.5 rounded-full bg-linesoft overflow-hidden mt-1.5">
+              <div class="h-full rounded-full transition-all ${tayyor?'bg-emerald-500':'grad-brand'}" style="width:${foiz}%"></div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <p class="text-[11px] text-inksoft mt-4">Vazifalar har kuni yangilanadi.</p>
+  </div>`;
+}
+
+/* ---------- REYTING ---------- */
+let reytingMalumot = null, reytingYuklanmoqda = false;
+
+async function reytingniYukla(){
+  if (!FB.ready || reytingYuklanmoqda) return;
+  reytingYuklanmoqda = true;
+  reytingMalumot = await reytingOl(true);
+  reytingYuklanmoqda = false;
+  if (STATE.route === '#/reyting') render();
+}
+
+function ReytingPage(){
+  const meniUid = FB.ready && FB.auth.currentUser ? FB.auth.currentUser.uid : null;
+
+  if (!FB.ready){
+    return `
+    <div>
+      <h1 class="font-display text-2xl sm:text-3xl font-bold">Reyting</h1>
+      <p class="text-inksoft mt-2 mb-6">Boshqa o'quvchilar bilan taqqoslang.</p>
+      <div class="card p-8 text-center">
+        <div class="text-4xl mb-3">\u{1F4F6}</div>
+        <p class="font-semibold">Reyting uchun hisobga kirish kerak</p>
+        <p class="text-sm text-inksoft mt-2">Reyting bulutda saqlanadi — ro'yxatdan o'ting yoki hisobingizga kiring.</p>
+      </div>
+    </div>`;
+  }
+
+  if (reytingMalumot === null){
+    if (!reytingYuklanmoqda) reytingniYukla();
+    return `
+    <div>
+      <h1 class="font-display text-2xl sm:text-3xl font-bold">Reyting</h1>
+      <p class="text-inksoft mt-2 mb-6">Boshqa o'quvchilar bilan taqqoslang.</p>
+      <div class="card p-6 space-y-3">${[1,2,3,4,5].map(()=>`<div class="skel h-12"></div>`).join('')}</div>
+    </div>`;
+  }
+
+  if (reytingMalumot.xato){
+    const ruxsat = reytingMalumot.xato === 'ruxsat' || reytingMalumot.xato === 'timeout';
+    return `
+    <div>
+      <h1 class="font-display text-2xl sm:text-3xl font-bold">Reyting</h1>
+      <p class="text-inksoft mt-2 mb-6">Boshqa o'quvchilar bilan taqqoslang.</p>
+      <div class="card p-8 text-center">
+        <div class="text-4xl mb-3">${ruxsat ? "\u{1F512}" : "\u{1F4F6}"}</div>
+        <p class="font-semibold">${ruxsat ? "Reytingga ruxsat yo'q" : "Reytingni yuklab bo'lmadi"}</p>
+        <p class="text-sm text-inksoft mt-2 max-w-md mx-auto leading-relaxed">
+          ${ruxsat
+            ? "Firestore qoidalarida reyting kolleksiyasi ochilmagan. Loyihadagi firestore.rules faylini Firebase Console › Firestore › Rules ga qo'yib Publish qiling."
+            : "Internet aloqasi bilan muammo bo'lishi mumkin. Qaytadan urinib ko'ring."}
+        </p>
+        <button data-action="reyting-yangila" class="btn btn-primary px-5 py-2.5 mt-5">Qaytadan urinish</button>
+      </div>
+    </div>`;
+  }
+
+  const royxat = reytingMalumot.royxat || [];
+  const menOrin = royxat.findIndex(r=>r.uid===meniUid);
+  const medal = ['\u{1F947}','\u{1F948}','\u{1F949}'];
+
+  return `
+  <div>
+    <div class="flex items-end justify-between flex-wrap gap-3 mb-6">
+      <div>
+        <h1 class="font-display text-2xl sm:text-3xl font-bold">Reyting</h1>
+        <p class="text-inksoft mt-1">Eng ko'p XP to'plagan o'quvchilar.</p>
+      </div>
+      <button data-action="reyting-yangila" class="btn btn-ghost px-4 py-2 text-sm">Yangilash</button>
+    </div>
+
+    ${menOrin >= 0 ? `
+    <div class="card p-5 mb-5 border-[var(--violet)]/40">
+      <div class="flex items-center gap-4 flex-wrap">
+        <span class="w-12 h-12 rounded-xl grad-brand text-white flex flex-col items-center justify-center shrink-0">
+          <span class="text-[9px] opacity-80 leading-none">O'RIN</span>
+          <span class="font-display font-bold text-lg leading-tight">${menOrin+1}</span>
+        </span>
+        <div class="flex-1 min-w-0">
+          <div class="font-display font-semibold">Sizning o'rningiz</div>
+          <div class="text-sm text-inksoft">${royxat.length} ta o'quvchi ichida · ${STATE.xp} XP · Level ${levelOf(STATE.xp)}</div>
+        </div>
+        ${menOrin > 0 ? `<div class="text-sm text-inksoft">Oldingi o'rinatgacha <b class="text-ink">${Math.max(0,(royxat[menOrin-1].xp||0) - STATE.xp + 1)}</b> XP</div>` : `<div class="text-sm font-semibold text-emerald-500">Siz yetakchisiz \u{1F389}</div>`}
+      </div>
+    </div>` : ''}
+
+    <div class="card overflow-hidden">
+      <div class="table-wrap">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-inksoft border-b border-line">
+              <th class="px-4 py-3 font-semibold">#</th>
+              <th class="px-4 py-3 font-semibold">O'quvchi</th>
+              <th class="px-4 py-3 font-semibold">Sinf</th>
+              <th class="px-4 py-3 font-semibold">Level</th>
+              <th class="px-4 py-3 font-semibold">Badge</th>
+              <th class="px-4 py-3 font-semibold text-right">XP</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${royxat.map((r,i)=>`
+            <tr class="border-b border-line last:border-0 ${r.uid===meniUid?'bg-indigo2-50/40':''}">
+              <td class="px-4 py-3 font-semibold">${i<3?medal[i]:(i+1)}</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-full grad-brand text-white flex items-center justify-center text-[11px] font-bold shrink-0">${escapeHtml((r.ism||'?').charAt(0).toUpperCase())}</span>
+                  <span class="font-medium">${escapeHtml(r.ism||"O'quvchi")}${r.uid===meniUid?' <span class="text-[10px] text-[var(--violet)] font-semibold">(siz)</span>':''}</span>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-inksoft">${r.sinf?escapeHtml(String(r.sinf))+'-sinf':'—'}</td>
+              <td class="px-4 py-3 text-inksoft">${r.level||1}</td>
+              <td class="px-4 py-3 text-inksoft">${r.badge||0}</td>
+              <td class="px-4 py-3 text-right font-display font-bold">${r.xp||0}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${royxat.length===0 ? `<div class="p-8 text-center text-sm text-inksoft">Hali hech kim XP to'plamagan — birinchi bo'ling!</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function RivojPage(){
+  const xp = STATE.xp, lvl = levelOf(xp), prog = levelProgress(xp);
+  const testlar = STATE.results.length;
+  const mastered = Object.keys(CONCEPTS).filter(c=>masteryInfo(c).ozlashtirilgan).length;
+
+  const badges = badgeRoyxati();
+
+  return `
+  <div>
+    <h1 class="font-display text-2xl sm:text-3xl font-bold mb-7">Mening rivojim</h1>
+
+    <div class="card p-6 sm:p-7 mb-6">
+      <div class="flex items-center gap-4">
+        <span class="w-16 h-16 rounded-2xl grad-brand text-white flex flex-col items-center justify-center shrink-0">
+          <span class="text-[10px] opacity-80 leading-none">LEVEL</span>
+          <span class="font-display font-bold text-2xl leading-tight">${lvl}</span>
+        </span>
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="font-semibold">${xp} XP</span>
+            <span class="text-inksoft">${lvl+1}-levelgacha ${LEVELS_XP-prog} XP</span>
+          </div>
+          <div class="h-3 rounded-full bg-linesoft overflow-hidden"><div class="h-full grad-brand rounded-full transition-all" style="width:${prog}%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-4 mb-6">
+      ${[["Yakunlangan testlar",testlar,'tasks'],["O'zlashtirilgan mavzular",mastered+" / "+Object.keys(CONCEPTS).length,'book'],["Jami XP",xp,'star']].map(c=>`
+        <div class="card p-5">
+          <span class="w-9 h-9 rounded-lg bg-indigo2-50 text-[var(--indigo)] flex items-center justify-center mb-3">${icon(c[2],'w-5 h-5')}</span>
+          <div class="font-display text-2xl font-bold">${c[1]}</div>
+          <div class="text-xs text-inksoft mt-1">${c[0]}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-5 mb-6">
+      ${KunlikVazifalar()}
+      <div class="card p-6">
+        <h3 class="font-display font-semibold mb-4">Bilim xaritasi</h3>
+        ${BilimXaritasi()}
+      </div>
+    </div>
+
+    <div class="card p-6">
+      <h3 class="font-display font-semibold mb-4">Yutuqlar <span class="text-xs font-normal text-inksoft">(${olinganBadge()} / ${badges.length})</span></h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        ${badges.map(b=>`<div class="rounded-xl border border-line p-4 text-center ${b.got?'':'opacity-40'}">
+          <div class="text-3xl mb-2">${b.ic}</div>
+          <div class="text-xs font-semibold">${b.nom}</div>
+          <div class="text-[10px] text-inksoft mt-1 leading-tight">${b.tavsif}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   ROUTER
+   ========================================================= */
+function currentPage(){
+  const r = STATE.route;
+  if (r==='#/' || r==='') return HomePage();
+
+  // ----- Student panel marshrutlari (tizimga kirish talab qilinadi) -----
+  const PANEL = {
+    '#/panel':   PanelDashboard,
+    '#/ustoz':   UstozPage,
+    '#/testlar': TestlarPage,
+    '#/test':    TestPage,
+    '#/quiz':    QuizPage,
+    '#/tahlil':  TahlilPage,
+    '#/rivoj':   RivojPage,
+    '#/reyting': ReytingPage
+  };
+  if (PANEL[r]){
+    if (!STATE.user) return RequireAuthNote();
+    return PanelShell(PANEL[r]());
+  }
+  if (r==='#/haqimizda') return SimplePage("Biz haqimizda","X-edu — O'zbekiston o'quvchilari va o'qituvchilari uchun yaratilgan zamonaviy ta'lim platformasi. Maqsadimiz sun'iy intellekt yordamida ta'limni har bir sinfxonaga yaqinlashtirish.");
+  if (r==='#/aloqa') return SimplePage("Aloqa","Savol va takliflaringiz bo'lsa, quyidagi ijtimoiy tarmoqlar orqali biz bilan bog'laning: Telegram, Instagram.");
+  if (r==='#/yordam') return SimplePage("Yordam markazi","Platformadan foydalanish bo'yicha savollaringiz bo'lsa, 'Ko'p beriladigan savollar' bo'limiga murojaat qiling.");
+  if (r==='#/maxfiylik') return SimplePage("Maxfiylik siyosati","Demo platforma sifatida foydalanuvchi ma'lumotlari faqat brauzeringiz xotirasida (localStorage) saqlanadi va serverga yuborilmaydi.");
+  if (r==='#/shartlar') return SimplePage("Foydalanish shartlari","Ushbu sayt namoyish (demo) maqsadida yaratilgan bo'lib, ta'lim jarayonini sinov tariqasida ko'rsatadi.");
+  return NotFoundPage();
+}
+function SimplePage(title, text){
+  return `<section class="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+    <h1 class="font-display text-3xl font-bold mb-5">${title}</h1>
+    <p class="text-inksoft leading-relaxed">${text}</p>
+  </section>`;
+}
+function NotFoundPage(){
+  return `<section class="max-w-xl mx-auto px-4 sm:px-6 py-24 text-center">
+    <h1 class="font-display text-4xl font-bold">404</h1>
+    <p class="text-inksoft mt-3">Sahifa topilmadi.</p>
+    <a href="#/" class="btn btn-primary px-5 py-2.5 mt-6 inline-flex">Bosh sahifaga qaytish</a>
+  </section>`;
+}
+
+function render(){
+  document.getElementById('app').innerHTML = Header() + currentPage() + Footer();
+  renderModal();
+  window.scrollTo({top:0, behavior:'instant'});
+  if (STATE.route==='#/quiz' && quizState && !quizState.tugadi && STATE.user) quizTimerBoshla();
+  else clearInterval(quizTimer);
+}
+function renderModal(){
+  const root = document.getElementById('modal-root');
+  if (window.__modal==='auth') root.innerHTML = AuthModal();
+  else if (window.__modal==='lesson') root.innerHTML = LessonModal(window.__modalData);
+  else if (window.__modal==='test') { root.innerHTML = TestModal(); }
+  else if (window.__modal==='game') { root.innerHTML = GameModal(window.__modalData); }
+  else root.innerHTML = '';
+}
+
+document.addEventListener('keydown', (e)=>{
+  if (e.key==='Escape' && window.__modal){ window.__modal=null; clearInterval(quizTimerHandle); renderModal(); }
+});
+
+window.addEventListener('hashchange', ()=>{
+  STATE.route = location.hash || '#/';
+  STATE.menuOpen=false;
+  clearInterval(quizTimerHandle);
+  window.__modal=null;
+  render();
+});
+
+/* =========================================================
+   EVENT DELEGATSIYA
+   ========================================================= */
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-action]');
+  if (!btn) {
+    // Ichki navigatsiya havolalari: hashchange hodisasiga tayanmaymiz —
+    // u file:// va ba'zi muhitlarda ishga tushmaydi, sidebar shu sababli qotib qolardi.
+    const link = e.target.closest('a[href^="#/"]');
+    if (link){
+      e.preventDefault();
+      STATE.menuOpen = false;
+      window.__modal = null;
+      clearInterval(quizTimerHandle);
+      go(link.getAttribute('href'));
+      render();
+      return;
+    }
+    if (!e.target.closest('#user-menu-wrap')) { const um = document.getElementById('user-menu'); if (um) um.classList.add('hidden'); }
+    return;
+  }
+  const action = btn.dataset.action;
+
+  if (action==='toggle-menu'){ STATE.menuOpen = !STATE.menuOpen; render(); }
+  if (action==='toggle-user-menu'){ const um = document.getElementById('user-menu'); um.classList.toggle('hidden'); }
+  if (action==='toggle-theme'){
+    const html = document.documentElement;
+    const cur = html.getAttribute('data-theme');
+    const next = cur==='dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    DB.set('theme', next);
+    render();
+  }
+  if (action==='open-auth'){ authMode = btn.dataset.mode; window.__modal='auth'; renderModal(); }
+  if (action==='switch-auth'){ authMode = authMode==='login' ? 'register' : 'login'; renderModal(); }
+  if (action==='close-modal' || (action==='close-modal-bg' && e.target===btn)){ window.__modal=null; clearInterval(quizTimerHandle); renderModal(); }
+  if (action==='logout'){
+    if (FB.ready) FB.auth.signOut().catch(()=>{});
+    /* Keyingi foydalanuvchi oldingisining bilim xaritasini ko'rmasligi kerak */
+    STATE.user=null; STATE.mastery={}; STATE.results=[]; STATE.chats=[]; STATE.activeChat=null; STATE.xp=0;
+    persistLocal();
+    toast("Tizimdan chiqdingiz"); go('#/'); render();
+  }
+
+  if (action==='toggle-faq'){
+    const i = btn.dataset.i;
+    const content = document.getElementById('faq-content-'+i);
+    const chevron = btn.querySelector('.faq-chevron');
+    const isOpen = content.style.maxHeight && content.style.maxHeight!=='0px';
+    qsa('.accordion-content').forEach(c=>c.style.maxHeight='0px');
+    qsa('.faq-chevron').forEach(c=>c.style.transform='');
+    if (!isOpen){ content.style.maxHeight = content.scrollHeight+'px'; chevron.style.transform='rotate(180deg)'; }
+  }
+
+  if (action==='filter-lesson'){
+    const type = btn.dataset.type, val = btn.dataset.val;
+    if (type==='sinf') lessonFilters.sinf = val ? Number(val) : null;
+    if (type==='fan') lessonFilters.fan = val || null;
+    lessonFilters.page = 1;
+    render();
+  }
+  if (action==='lesson-page'){ lessonFilters.page = Number(btn.dataset.p); render(); window.scrollTo({top:0}); }
+  if (action==='view-lesson'){ window.__modal='lesson'; window.__modalData=btn.dataset.id; renderModal(); }
+  if (action==='toggle-save'){
+    const id = btn.dataset.id;
+    if (!STATE.user){ toast("Saqlash uchun avval tizimga kiring"); authMode='login'; window.__modal='auth'; renderModal(); return; }
+    const i = STATE.saved.indexOf(id);
+    if (i>-1) STATE.saved.splice(i,1); else STATE.saved.push(id);
+    persist(); render();
+  }
+
+  if (action==='chat-new'){ yangiChat(joriyChat().concept); render(); }
+  if (action==='chat-open'){ STATE.activeChat = btn.dataset.id; persist(); render(); }
+  if (action==='ustoz-concept'){
+    const c = joriyChat();
+    // Suhbat boshlangan bo'lsa mavzuni almashtirmaymiz — yangi suhbat ochamiz
+    if (c.xabarlar.length) yangiChat(btn.dataset.c);
+    else { c.concept = btn.dataset.c; persist(); }
+    render();
+  }
+  if (action==='ustoz-goto'){
+    yangiChat(btn.dataset.c);
+    go('#/ustoz'); render();
+    setTimeout(()=>ustozSora("Bu mavzuni boshidan tushuntirib bering"), 150);
+  }
+  if (action==='ustoz-explain'){ ustozSora("Bu mavzuni tushuntirib bering"); }
+
+  if (action==='test-start'){ boshlaTest(btn.dataset.t); go('#/test'); render(); }
+  if (action==='test-answer'){ javobBer(btn.dataset.val); }
+  if (action==='test-cancel'){ joriyTest=null; go('#/testlar'); render(); }
+
+  if (action==='reset-data'){
+    STATE.xp = 0; STATE.mastery = {}; STATE.results = []; STATE.saved = [];
+    STATE.chats = []; STATE.activeChat = null;
+    joriyTest = null; sonngiTahlil = null; quizState = null; ustozYuklanmoqda = false;
+    clearInterval(quizTimer);
+    persist();
+    toast("Ma'lumotlar tozalandi — toza holatdan boshlashingiz mumkin");
+    go('#/panel'); render();
+  }
+
+  if (action==='reyting-yangila'){ reytingMalumot=null; reytingKesh=null; render(); reytingniYukla(); }
+
+  if (action==='quiz-start'){ boshlaQuiz(); go('#/quiz'); render(); }
+  if (action==='quiz-answer'){ quizJavob(btn.dataset.val); }
+
+  if (action==='scroll-to'){
+    STATE.menuOpen=false;
+    if (STATE.route!=='#/'){ go('#/'); render(); }
+    const el = document.getElementById(btn.dataset.target);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  if (action==='ai-level'){ aiForm.daraja = btn.dataset.val; render(); }
+  if (action==='ai-count'){ aiForm.soni = Number(btn.dataset.val); render(); }
+  if (action==='ai-generate'){
+    const form = document.getElementById('ai-form');
+    if (form){
+      aiForm.fan = form.fan.value; aiForm.sinf = Number(form.sinf.value);
+      aiForm.mavzu = form.mavzu.value.trim() || TOPICS[aiForm.fan][0];
+      aiForm.turi = form.turi.value;
+    } else if (!aiForm.mavzu) { aiForm.mavzu = TOPICS[aiForm.fan][0]; }
+    aiLoading = true; aiResult = null; render();
+    setTimeout(()=>{
+      const savollar = Array.from({length:aiForm.soni}, (_,i)=>genQuestion(aiForm.fan, aiForm.mavzu, aiForm.turi, aiForm.daraja, i+1));
+      aiResult = { ...aiForm, savollar, sana: new Date().toLocaleDateString('uz-UZ') };
+      aiLoading = false;
+      if (STATE.user){ STATE.generated.unshift(aiResult); STATE.generated = STATE.generated.slice(0,30); persist(); }
+      render();
+      document.getElementById('ai-result-wrap').scrollIntoView({behavior:'smooth', block:'start'});
+    }, 1400);
+  }
+  if (action==='ai-edit'){ toast("Tahrirlash rejimi: matnni to'g'ridan-to'g'ri o'zgartirishingiz mumkin (demo)"); }
+  if (action==='ai-save'){
+    if (!STATE.user){ toast("Saqlash uchun tizimga kiring"); authMode='login'; window.__modal='auth'; renderModal(); return; }
+    toast("Material profilingizga saqlandi");
+  }
+  if (action==='ai-print'){ window.print(); }
+  if (action==='ai-pdf'){ toast("PDF sifatida saqlash uchun chop etish oynasi ochildi — 'Saqlash' manzilida PDF ni tanlang"); setTimeout(()=>window.print(), 300); }
+
+  if (action==='open-game'){ window.__modal='game'; window.__modalData=btn.dataset.id; renderModal(); }
+  if (action==='game-pick-subject'){ startGame(btn.dataset.game, btn.dataset.fan); }
+  if (action==='spin-wheel'){
+    const wheel = document.getElementById('wheel');
+    const idx = Math.floor(seedRand(Date.now())*gameState.qs.length);
+    const seg = 360/gameState.qs.length;
+    const target = 360*4 + (360 - (idx*seg + seg/2));
+    wheel.style.transform = `rotate(${target}deg)`;
+    setTimeout(()=>{
+      const q = gameState.qs[idx];
+      gameState.score += 10;
+      document.getElementById('wheel-question').innerHTML = `<div class="card p-4"><p class="text-sm font-semibold">${q.fan}: ${q.mavzu}</p><p class="text-xs text-inksoft mt-1">+10 ball qo'lga kiritdingiz!</p></div>` + gameScoreBar();
+    }, 4600);
+  }
+  if (action==='open-box'){
+    const i = Number(btn.dataset.i);
+    if (gameState.boxes[i].opened) return;
+    gameState.boxes[i].opened = true;
+    gameState.score += gameState.boxes[i].pts;
+    renderGameBody();
+  }
+  if (action==='quiz-answer'){ handleQuizAnswer(btn.dataset.val); }
+  if (action==='match-left'){ gameState.leftPick = Number(btn.dataset.i); renderGameBody(); }
+  if (action==='match-right'){
+    if (gameState.leftPick===null || gameState.leftPick===undefined) return;
+    const l = gameState.left[gameState.leftPick]; const r = gameState.right[Number(btn.dataset.i)];
+    if (l.mavzu===r.mavzu){ gameState.matched.push(l.mavzu); gameState.score += 15; toast("To'g'ri juftlik! +15"); }
+    else toast("Mos kelmadi, qayta urinib ko'ring");
+    gameState.leftPick = null;
+    renderGameBody();
+  }
+  if (action==='race-answer'){
+    const correct = btn.dataset.val===gameState.currentAnswer;
+    if (correct){ gameState.pos.me = Math.min(100, gameState.pos.me+20); gameState.score+=10; } 
+    gameState.pos.bot = Math.min(100, gameState.pos.bot + 12);
+    gameState.idx++;
+    renderGameBody();
+  }
+  if (action==='memory-flip'){
+    const i = Number(btn.dataset.i);
+    if (gameState.flipped.includes(i) || gameState.flipped.length>=2) return;
+    gameState.flipped.push(i); gameState.moves++;
+    renderGameBody();
+    if (gameState.flipped.length===2){
+      const [a,b] = gameState.flipped;
+      const ca = gameState.cards[a], cb = gameState.cards[b];
+      setTimeout(()=>{
+        if (ca.pair===cb.pair && a!==b){ gameState.matched.push(ca.pair); gameState.score+=10; }
+        gameState.flipped = [];
+        renderGameBody();
+      }, 700);
+    }
+  }
+
+  if (action==='lib-filter'){ libFilters.turi = btn.dataset.val || null; render(); }
+
+  if (action==='start-test'){
+    const l = LESSONS.find(x=>x.id===btn.dataset.id);
+    activeTest = { lesson:l, qs: buildTestQuestions(l), idx:0, score:0 };
+    window.__modal='test'; renderModal();
+  }
+  if (action==='answer-test'){
+    const q = activeTest.qs[activeTest.idx];
+    if (btn.dataset.val===q.javob) activeTest.score++;
+    activeTest.idx++;
+    if (activeTest.idx>=activeTest.qs.length && STATE.user){
+      const foiz = Math.round((activeTest.score/activeTest.qs.length)*100);
+      STATE.results.unshift({mavzu:activeTest.lesson.mavzu, foiz, score:foiz, sana:new Date().toLocaleDateString('uz-UZ')});
+      persist();
+    }
+    renderModal();
+  }
+  if (action==='retry-test'){ activeTest = { lesson:activeTest.lesson, qs: buildTestQuestions(activeTest.lesson), idx:0, score:0 }; renderModal(); }
+
+  if (action==='choose-plan'){
+    if (!STATE.user){ toast("Tarifni tanlash uchun avval ro'yxatdan o'ting"); authMode='register'; window.__modal='auth'; renderModal(); return; }
+    toast(`"${btn.dataset.plan}" tarifi tanlandi (demo)`);
+  }
+  if (action==='billing'){ STATE.billing = btn.dataset.val; render(); }
+});
+
+document.addEventListener('change', (e)=>{
+  const el = e.target.closest('[data-action="lib-select"]');
+  if (el){ libFilters[el.dataset.type] = el.value || null; if (el.dataset.type==='sinf' && el.value) libFilters.sinf = Number(el.value); render(); }
+});
+
+document.addEventListener('submit', (e)=>{
+  const form = e.target.closest('[data-action]');
+  if (!form) return;
+  e.preventDefault();
+  const action = form.dataset.action;
+  if (action==='ustoz-send'){
+    const savol = form.savol.value.trim();
+    if (!savol) return;
+    form.savol.value = '';
+    ustozSora(savol);
+  }
+  if (action==='auth-form' || form.id==='auth-form'){
+    // handled below via id check
+  }
+  if (action==='wordfind-submit'){
+    const val = form.answer.value.trim().toLowerCase();
+    const q = gameState.qs[gameState.idx];
+    if (val===q.mavzu.toLowerCase()){ gameState.score+=15; toast("To'g'ri! +15 ball"); }
+    else toast(`Noto'g'ri. Javob: ${q.mavzu}`);
+    gameState.idx++;
+    renderGameBody();
+  }
+  if (action==='anagram-submit'){
+    const val = form.answer.value.trim().toUpperCase();
+    if (val===gameState.currentWord){ gameState.score+=15; toast("To'g'ri! +15 ball"); }
+    else toast(`Noto'g'ri. Javob: ${gameState.currentWord}`);
+    gameState.idx++;
+    renderGameBody();
+  }
+});
+document.getElementById('modal-root').addEventListener('submit', async (e)=>{
+  if (e.target.id !== 'auth-form') return;
+  e.preventDefault();
+  const f = e.target;
+  const royxat = !!f.ism;                       // ism maydoni faqat ro'yxatdan o'tishda bor
+  const ism = royxat ? f.ism.value.trim() : f.email.value.split('@')[0];
+  const sinf = f.sinf ? Number(f.sinf.value) : (STATE.user && STATE.user.sinf) || 8;
+  const email = f.email.value.trim();
+  const parol = f.parol.value;
+
+  const tugma = f.querySelector('button');
+  const asliy = tugma ? tugma.innerHTML : '';
+
+  /* Firebase sozlanmagan bo'lsa — eski lokal xulq saqlanadi */
+  if (!FB.ready){
+    STATE.user = { ism: ism || "O'quvchi", email, rol:'oquvchi', sinf };
+    persist();
+    window.__modal = null;
+    toast(`Xush kelibsiz, ${STATE.user.ism}!`);
+    renderModal(); go('#/panel'); render();
+    return;
+  }
+
+  if (tugma){ tugma.disabled = true; tugma.innerHTML = royxat ? 'Yaratilmoqda…' : 'Kirilmoqda…'; }
+  try{
+    const natija = royxat
+      ? await FB.auth.createUserWithEmailAndPassword(email, parol)
+      : await FB.auth.signInWithEmailAndPassword(email, parol);
+    const u = natija.user;
+
+    if (royxat && ism) { try{ await u.updateProfile({ displayName: ism }); }catch(_){} }
+
+    STATE.user = { uid: u.uid, ism: ism || "O'quvchi", email, rol:'oquvchi', sinf };
+    if (!royxat) await bulutdanYukla(u.uid);     // mavjud foydalanuvchi — bilim xaritasi bulutdan keladi
+    persist();
+
+    window.__modal = null;
+    toast(royxat ? `Hisob yaratildi, ${STATE.user.ism}!` : `Xush kelibsiz, ${STATE.user.ism}!`);
+    renderModal(); go('#/panel'); render();
+  }catch(err){
+    console.warn('Auth xatosi:', err.code, err.message);
+    toast(bulutXatosi(err.code));
+    if (tugma){ tugma.disabled = false; tugma.innerHTML = asliy; }
+  }
+});
+
+/* init theme */
+(function initTheme(){
+  const saved = DB.get('theme', null);
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+
+/* ===== TEZ SINOV REJIMI =====
+   true  -> sahifa ochilishi bilan avtomatik kirilgan holatda bo'ladi (login shart emas)
+   false -> odatdagi holat: mehmon bosh sahifada qoladi, panelga kirish uchun
+            ro'yxatdan o'tadi (ism-familiya, sinf, email, parol)
+   Firebase ulangan bo'lsa bu bayroq baribir e'tiborga olinmaydi — haqiqiy sessiya ustun. */
+const TEZ_SINOV = false;
+
+/* Firebase ulangan bo'lsa haqiqiy sessiya ustun turadi — soxta foydalanuvchi yaratilmaydi */
+if (TEZ_SINOV && !STATE.user && !FB.ready){
+  STATE.user = { ism:"Aziza Karimova", email:"aziza@uni.uz", rol:'oquvchi' };
+}
+
+/* Sahifa yangilanganda sessiya tiklanadi va bilim xaritasi bulutdan yuklanadi */
+if (FB.ready){
+  FB.auth.onAuthStateChanged(async (u)=>{
+    if (!u){ return; }
+    const boshqaOdam = STATE.user && STATE.user.uid && STATE.user.uid !== u.uid;
+    if (boshqaOdam){
+      /* Hisob almashdi — oldingi o'quvchining o'rganish ma'lumoti tashlanadi */
+      STATE.mastery = {}; STATE.results = []; STATE.chats = []; STATE.activeChat = null;
+      STATE.xp = 0; STATE.kunlik = null; STATE.user = null;
+    }
+    STATE.user = Object.assign(
+      { ism: u.displayName || (u.email||'').split('@')[0] || "O'quvchi", rol:'oquvchi', sinf:8 },
+      STATE.user || {},
+      { uid: u.uid, email: u.email }
+    );
+    const bor = await bulutdanYukla(u.uid);
+    if (bor) reytinggaYoz();   // faqat bulutda haqiqiy profili bo'lsa reytingni yangilaymiz
+    render();
+  });
+}
+
+render();
+</script>
+</body>
+</html>

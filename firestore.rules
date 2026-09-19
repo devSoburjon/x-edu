@@ -1,0 +1,26 @@
+rules_version = '2';
+
+/* X-Edu Firestore qoidalari.
+   Firebase Console > Firestore Database > Rules > joylashtiring > Publish */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Shaxsiy ma'lumot: bilim xaritasi, XP, test natijalari, AI suhbatlari.
+    // Faqat egasi o'qiy va yoza oladi.
+    match /oquvchilar/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Ommaviy reyting profili: ism, sinf, XP, level, badge soni.
+    // Barcha kirgan foydalanuvchilar o'qiydi, lekin har kim FAQAT o'zinikini yozadi.
+    match /reyting/{uid} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Qolgan hamma narsa yopiq
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

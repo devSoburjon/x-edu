@@ -1,0 +1,7 @@
+# Maxfiy sozlamalar — API kalitlari hech qachon repozitoriyga tushmasin
+config.js
+
+# OS / muharrir
+Thumbs.db
+.DS_Store
+.vscode/
